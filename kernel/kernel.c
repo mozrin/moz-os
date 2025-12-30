@@ -330,27 +330,16 @@ void kmain() {
     } else {
         print_string("kernel: double sha-256 FAILED", 9);
     }
-    
     /* --------------------------------------------------------------------- */
-    /* UART Input & Mining Loop (Full Target Check) with Midstate Optimization */
+    /* Deterministic Work Loop (Continuous Ingestion + Mining)               */
     /* --------------------------------------------------------------------- */
     
     /* Initialize UART */
     uart_init();
     print_string("kernel: uart initialized", 13);
     uart_puts("uart: hello from moz-os\n");
-    
-    /* Wait for payload */
-    print_string("kernel: waiting for block header...", 14);
-    uart_puts("uart: waiting for 80-byte header\n");
-    
-    uint8_t received_header[80];
-    uart_read_block(received_header, 80);
-    print_string("kernel: block header received via uart", 15);
-    
-    print_string("kernel: midstate optimization active", 11); /* Line 11 reuse or overwrite */
 
-    /* Define Target */
+    /* Define Target (Static for now, could be part of payload later) */
     /* Based on Genesis Hash: Bytes 26=0x19, 27..31=0x00 */
     /* Set Target slightly higher: Byte 26=0x20, 27..31=0x00, rest 0xFF */
     uint8_t target[32];
@@ -364,80 +353,94 @@ void kmain() {
     /* Byte 26: Genesis is 0x19. Target 0x20 is easier. */
     target[26] = 0x20;
 
-    /* 1. Compute Midstate (SHA-256 state after first 64 bytes) */
-    uint32_t midstate[8] = {
-        0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
-        0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19
-    };
-    uint8_t block1[64];
-    for(i=0; i<64; i++) block1[i] = received_header[i]; /* Use received header */
-    sha256_transform(midstate, block1);
-    
-    /* 2. Prepare Tail Block (Bytes 64-79 + Padding) */
-    uint8_t tail_block[64];
-    for(i=0; i<64; i++) tail_block[i] = 0;
-    for(i=0; i<16; i++) tail_block[i] = received_header[64+i]; /* Use received header */
-    tail_block[16] = 0x80;
-    tail_block[62] = 0x02;
-    tail_block[63] = 0x80;
-    
-    /* We reuse header structure for reference, but update tail_block directly */
-    uint32_t nonce = 0;
-    uint32_t H[8];
-    uint8_t hash1[32];
-    uint8_t final_hash[32];
-    
-    while (nonce < 0xffffffff) {
-        /* Update Nonce in Tail Block */
-        /* Nonce is at offset 76 in header. 
-           In tail_block (which starts at header[64]), offset is 76-64 = 12. 
-        */
-        tail_block[12] = (nonce) & 0xff;
-        tail_block[13] = (nonce >> 8) & 0xff;
-        tail_block[14] = (nonce >> 16) & 0xff;
-        tail_block[15] = (nonce >> 24) & 0xff;
+    while (1) {
+        /* Wait for payload */
+        print_string("kernel: waiting for block header...", 14);
+        uart_puts("uart: waiting for 80-byte header\n");
         
-        /* Copy Midstate */
-        for(i=0; i<8; i++) H[i] = midstate[i];
+        uint8_t received_header[80];
+        uart_read_block(received_header, 80);
+        print_string("kernel: block header received via uart", 15);
         
-        /* Pass 1 (Tail) */
-        sha256_transform(H, tail_block);
+        print_string("kernel: midstate optimization active", 11); /* Line 11 reuse or overwrite */
+
+        /* 1. Compute Midstate (SHA-256 state after first 64 bytes) */
+        uint32_t midstate[8] = {
+            0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
+            0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19
+        };
+        uint8_t block1[64];
+        for(i=0; i<64; i++) block1[i] = received_header[i];
+        sha256_transform(midstate, block1);
         
-        /* Serialize Pass 1 result for Pass 2 */
-        for (i=0; i<8; i++) write_be32(&hash1[i*4], H[i]);
+        /* 2. Prepare Tail Block (Bytes 64-79 + Padding) */
+        uint8_t tail_block[64];
+        for(i=0; i<64; i++) tail_block[i] = 0;
+        for(i=0; i<16; i++) tail_block[i] = received_header[64+i];
+        tail_block[16] = 0x80;
+        tail_block[62] = 0x02;
+        tail_block[63] = 0x80;
         
-        /* Pass 2 (SHA-256 of hash1) */
-        H[0] = 0x6a09e667; H[1] = 0xbb67ae85; H[2] = 0x3c6ef372; H[3] = 0xa54ff53a;
-        H[4] = 0x510e527f; H[5] = 0x9b05688c; H[6] = 0x1f83d9ab; H[7] = 0x5be0cd19;
+        /* Reset Mining State */
+        uint32_t nonce = 0;
+        uint32_t H[8];
+        uint8_t hash1[32];
+        uint8_t final_hash[32];
         
-        /* Prepare Pass 2 Block */
-        uint8_t p2_block[64];
-        for(i=0; i<64; i++) p2_block[i] = 0;
-        for(i=0; i<32; i++) p2_block[i] = hash1[i];
-        p2_block[32] = 0x80;
-        p2_block[62] = 0x01;
-        p2_block[63] = 0x00;
-        
-        sha256_transform(H, p2_block);
-        
-        /* Serialize Final Hash */
-        for (i=0; i<8; i++) write_be32(&final_hash[i*4], H[i]);
-        
-        /* Check Target (Full 256-bit) */
-        if (check_target(final_hash, target)) {
-            print_string("kernel: valid solution meets target", 12);
-            print_string("kernel: share submitted via uart", 16);
+        while (nonce < 0xffffffff) {
+            /* Update Nonce in Tail Block */
+            /* Nonce is at offset 76 in header. 
+               In tail_block (which starts at header[64]), offset is 76-64 = 12. 
+            */
+            tail_block[12] = (nonce) & 0xff;
+            tail_block[13] = (nonce >> 8) & 0xff;
+            tail_block[14] = (nonce >> 16) & 0xff;
+            tail_block[15] = (nonce >> 24) & 0xff;
             
-            uart_puts("share: nonce=");
-            uart_put_hex(nonce);
-            uart_puts(" hash=");
-            uart_put_hex_bytes(final_hash, 32);
-            uart_puts("\n");
+            /* Copy Midstate */
+            for(i=0; i<8; i++) H[i] = midstate[i];
             
-            break;
+            /* Pass 1 (Tail) */
+            sha256_transform(H, tail_block);
+            
+            /* Serialize Pass 1 result for Pass 2 */
+            for (i=0; i<8; i++) write_be32(&hash1[i*4], H[i]);
+            
+            /* Pass 2 (SHA-256 of hash1) */
+            H[0] = 0x6a09e667; H[1] = 0xbb67ae85; H[2] = 0x3c6ef372; H[3] = 0xa54ff53a;
+            H[4] = 0x510e527f; H[5] = 0x9b05688c; H[6] = 0x1f83d9ab; H[7] = 0x5be0cd19;
+            
+            /* Prepare Pass 2 Block */
+            uint8_t p2_block[64];
+            for(i=0; i<64; i++) p2_block[i] = 0;
+            for(i=0; i<32; i++) p2_block[i] = hash1[i];
+            p2_block[32] = 0x80;
+            p2_block[62] = 0x01;
+            p2_block[63] = 0x00;
+            
+            sha256_transform(H, p2_block);
+            
+            /* Serialize Final Hash */
+            for (i=0; i<8; i++) write_be32(&final_hash[i*4], H[i]);
+            
+            /* Check Target (Full 256-bit) */
+            if (check_target(final_hash, target)) {
+                print_string("kernel: valid solution meets target", 12);
+                print_string("kernel: share submitted via uart", 16);
+                
+                uart_puts("share: nonce=");
+                uart_put_hex(nonce);
+                uart_puts(" hash=");
+                uart_put_hex_bytes(final_hash, 32);
+                uart_puts("\n");
+                
+                break;
+            }
+            
+            nonce++;
         }
         
-        nonce++;
+        print_string("kernel: work loop cycle complete", 17);
     }
     
     /* Halt */
