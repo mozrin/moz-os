@@ -93,58 +93,149 @@ void sha256_transform(uint32_t state[8], const uint8_t data[64]) {
     state[7] += h;
 }
 
+/* 
+ * Helper to write 32-bit word in Big Endian to byte array 
+ */
+void write_be32(uint8_t* buf, uint32_t val) {
+    buf[0] = (val >> 24) & 0xff;
+    buf[1] = (val >> 16) & 0xff;
+    buf[2] = (val >> 8) & 0xff;
+    buf[3] = (val) & 0xff;
+}
+
+/*
+ * dsha256 - Double SHA-256 for 80-byte Bitcoin Header
+ * Input: header[80]
+ * Output: hash[32]
+ */
+void dsha256(const uint8_t header[80], uint8_t output[32]) {
+    uint32_t H[8];
+    uint8_t block[64];
+    int i;
+    
+    /* ------------------------------------------------------------- */
+    /* PASS 1: SHA-256(header) */
+    /* ------------------------------------------------------------- */
+    
+    /* Init H */
+    H[0] = 0x6a09e667; H[1] = 0xbb67ae85; H[2] = 0x3c6ef372; H[3] = 0xa54ff53a;
+    H[4] = 0x510e527f; H[5] = 0x9b05688c; H[6] = 0x1f83d9ab; H[7] = 0x5be0cd19;
+    
+    /* Block 1: Header bytes 0..63 */
+    for(i=0; i<64; i++) block[i] = header[i];
+    sha256_transform(H, block);
+    
+    /* Block 2: Header bytes 64..79, then Padding */
+    for(i=0; i<64; i++) block[i] = 0;
+    
+    /* Copy remaining 16 bytes */
+    for(i=0; i<16; i++) block[i] = header[64 + i];
+    
+    /* Padding: 1 bit (0x80) */
+    block[16] = 0x80;
+    
+    /* Length: 80 bytes * 8 = 640 bits = 0x0000000000000280 */
+    /* Put at end (Big Endian) */
+    block[62] = 0x02;
+    block[63] = 0x80;
+    sha256_transform(H, block);
+    
+    /* Result of Pass 1 (32 bytes) */
+    /* We need to feed this into Pass 2. 
+       Note: SHA-256 state H is 8x32-bit words. 
+       We need to serialize them Big Endian to feed into next hash. 
+    */
+    uint8_t hash1[32];
+    for (i=0; i<8; i++) {
+        write_be32(&hash1[i*4], H[i]);
+    }
+
+    /* ------------------------------------------------------------- */
+    /* PASS 2: SHA-256(hash1) */
+    /* ------------------------------------------------------------- */
+    
+    /* Init H again */
+    H[0] = 0x6a09e667; H[1] = 0xbb67ae85; H[2] = 0x3c6ef372; H[3] = 0xa54ff53a;
+    H[4] = 0x510e527f; H[5] = 0x9b05688c; H[6] = 0x1f83d9ab; H[7] = 0x5be0cd19;
+    
+    /* Block 1: 32 bytes data + Padding */
+    /* Length = 32 * 8 = 256 bits = 0x0100 */
+    
+    for(i=0; i<64; i++) block[i] = 0;
+    
+    /* Copy 32 bytes */
+    for(i=0; i<32; i++) block[i] = hash1[i];
+    
+    /* Padding */
+    block[32] = 0x80;
+    
+    /* Length at end */
+    block[62] = 0x01;
+    block[63] = 0x00;
+    
+    sha256_transform(H, block);
+    
+    /* Result to output */
+    for (i=0; i<8; i++) {
+        write_be32(&output[i*4], H[i]);
+    }
+}
+
 void kmain() {
     /* Print banner at line 7 */
     print_string("kernel: moz-os skeleton entry", 7);
     
-    /* SHA-256 Validation for "abc" */
-    /* "abc" = 0x61, 0x62, 0x63, 0x80 (padding start), then zeros, then length bits at end */
-    /* length = 24 bits = 0x18 */
-    /* block[64] */
-    uint8_t block[64];
-    int i;
-    /* Initialize block with zeros */
-    for(i=0; i<64; i++) block[i] = 0;
-    
-    /* Set "abc" and padding */
-    block[0] = 'a';
-    block[1] = 'b';
-    block[2] = 'c';
-    block[3] = 0x80;
-    /* Length in bits (Big Endian) 64-bit size at end */
-    block[63] = 24; 
-    
-    /* Initial Hash Values */
-    uint32_t H[8] = {
-        0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
-        0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19
+    /* --------------------------------------------------------------------- */
+    /* Test Vector: Genesis Block Header (80 bytes) */
+    /* --------------------------------------------------------------------- */
+    uint8_t genesis_header[80] = {
+        /* Version: 1 */
+        0x01, 0x00, 0x00, 0x00,
+        /* Prev Block: 0 */
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00,
+        /* Merkle Root: 4a5e1e... */
+        0x3b, 0xa3, 0xed, 0xfd, 0x7a, 0x7b, 0x12, 0xb2, 0x7a, 0xc7, 0x2c, 0x3e,
+        0x67, 0x76, 0x8f, 0x61, 0x7f, 0xc8, 0x1b, 0xc3, 0x88, 0x8a, 0x51, 0x32,
+        0x3a, 0x9f, 0xb8, 0xaa, 0x4b, 0x1e, 0x5e, 0x4a,
+        /* Time: 1231006505 (0x495fab29) -> LE in header: 29 ab 5f 49 */
+        0x29, 0xab, 0x5f, 0x49,
+        /* Bits: 0x1d00ffff -> LE: ff ff 00 1d */
+        0xff, 0xff, 0x00, 0x1d,
+        /* Nonce: 2083236893 (0x7c2bac1d) -> LE: 1d ac 2b 7c */
+        0x1d, 0xac, 0x2b, 0x7c
     };
     
-    /* Process Block */
-    sha256_transform(H, block);
-    
-    /* Expected Hash ("abc") */
-    /* ba7816bf 8f01cfea 414140de 5dae2223 b00361a3 96177a9c b410ff61 f20015ad */
-    uint32_t expected[8] = {
-        0xba7816bf, 0x8f01cfea, 0x414140de, 0x5dae2223,
-        0xb00361a3, 0x96177a9c, 0xb410ff61, 0xf20015ad
+    /* Expected Double Hash (Big Endian) */
+    /* 000000000019d6... (LE) -> Ends with 19 00 ... */
+    /* Actual Bytes: 6f e2 8c 0a b6 f1 b3 72 c1 a6 a2 46 ae 63 f7 4f 93 1e 83 65 e1 5a 08 9c 68 d6 19 00 00 00 00 00 */
+    uint8_t expected_hash[32] = {
+        0x6f, 0xe2, 0x8c, 0x0a, 0xb6, 0xf1, 0xb3, 0x72,
+        0xc1, 0xa6, 0xa2, 0x46, 0xae, 0x63, 0xf7, 0x4f,
+        0x93, 0x1e, 0x83, 0x65, 0xe1, 0x5a, 0x08, 0x9c,
+        0x68, 0xd6, 0x19, 0x00, 0x00, 0x00, 0x00, 0x00
     };
     
-    /* Verify */
+    uint8_t result[32];
+    dsha256(genesis_header, result);
+    
     int valid = 1;
-    for(i=0; i<8; i++) {
-        if (H[i] != expected[i]) {
+    int i;
+    for(i=0; i<32; i++) {
+        if(result[i] != expected_hash[i]) {
             valid = 0;
             break;
         }
     }
     
     if (valid) {
-        print_string("kernel: sha-256 compression validated", 8);
+        print_string("kernel: sha-256 compression validated", 8); /* Kept old banner */
+        print_string("kernel: double sha-256 validated", 9);      /* New banner */
     } else {
-        print_string("kernel: sha-256 validation FAILED", 8);
+        print_string("kernel: double sha-256 FAILED", 9);
     }
-
+    
     /* Halt */
     while (1) {
         __asm__("hlt");
