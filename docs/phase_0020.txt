@@ -1,0 +1,72 @@
+title: mining-os — phase_0020: deterministic difficulty target ingestion (uart input for dynamic work)  
+
+intent  
+extend mining loop to accept dynamic difficulty targets via uart. this phase allows the kernel to ingest a 32‑byte target value alongside the block header, enabling variable difficulty work. deterministic ingestion ensures reproducible mining runs with externally supplied targets.  
+
+this phase adds:  
+- uart receive routine for 32‑byte target  
+- integration of target into mining loop (replace static target)  
+- confirmation banner after target ingestion  
+
+no networking stack yet.  
+no pool protocol.  
+
+============================================================  
+section 1 — workspace structure extension  
+============================================================  
+
+1. modify kernel/kernel.c to include uart target ingestion routine.  
+2. keep kernel/link.ld unchanged.  
+3. keep boot/mbr.asm and boot/stage2.asm unchanged.  
+
+============================================================  
+section 2 — implement target ingestion  
+============================================================  
+
+1. in kernel/kernel.c:  
+   - extend `uart_read_block()` to read 32‑byte target after 80‑byte header.  
+   - store target in buffer.  
+   - integrate target into mining loop comparison (hash ≤ target).  
+   - after ingestion, print banner (“kernel: difficulty target received via uart”).  
+
+2. continue mining loop as before, but now with dynamic target.  
+
+============================================================  
+section 3 — deterministic boot behavior  
+============================================================  
+
+1. bios loads mbr at 0x7c00.  
+2. mbr prints banner, reads stage‑2 from lba 2 into 0x8000.  
+3. mbr jumps to 0x8000.  
+4. stage‑2 enables a20, loads gdt, enters protected mode, builds paging structures, enters long mode, loads kernel.img into 0x00100000, jumps to kernel.  
+5. kernel initializes uart, ingests block header + target, prints confirmation banner, runs mining loop with midstate optimization and dynamic target, submits share when solution found, prints cycle complete, repeats deterministically.  
+
+============================================================  
+section 4 — no other files modified  
+============================================================  
+
+- do not add networking stack.  
+- do not add pool protocol.  
+- only modify kernel to include target ingestion.  
+
+============================================================  
+completion criteria  
+============================================================  
+
+- kernel/kernel.c compiles into kernel/kernel.img without errors.  
+- boot/stage2.asm and boot/mbr.asm assemble without errors.  
+- boot image runs in qemu with `-serial stdio`:  
+  - prints all prior banners (mbr, stage2, kernel init, sha‑256, double sha‑256, midstate, target, uart init, payload ingestion, share submission, work loop).  
+  - prints “kernel: difficulty target received via uart” after target ingestion.  
+  - continues mining loop with dynamic target.  
+  - repeats deterministically for each new payload.  
+- all lint warnings and errors resolved.  
+
+============================================================  
+post completion chores  
+============================================================  
+
+1. rename the current phase file by adding a .complete to the end of the name. for example: phase_0020.txt would become phase_0020.txt.complete  
+2. add all files and commit them to git using the following format for the comment.  
+    - feat: phase 0020: deterministic difficulty target ingestion (uart input for dynamic work)  
+3. determine the next phase sequentially and execute it: phase_0021.txt  

@@ -1,0 +1,73 @@
+title: mining-os — phase_0003: stage‑2 loader skeleton + banner handoff
+
+intent  
+introduce a deterministic stage‑2 loader skeleton. this phase ensures that after the mbr reads stage‑2 into memory, execution continues cleanly at 0x8000. the loader will print a banner and halt. no mode switches yet. no kernel load. no mining logic.
+
+this phase adds:
+- stage‑2 loader source (boot/stage2.asm)
+- stage‑2 banner output routine
+- deterministic handoff from mbr to stage‑2
+
+no protected mode.  
+no paging.  
+no long mode.  
+no kernel.  
+no hashing.  
+
+============================================================  
+section 1 — workspace structure extension  
+============================================================  
+
+1. add boot/stage2.asm to the workspace.  
+2. update makefile to assemble stage2.asm into boot/stage2.bin.  
+3. keep kernel/ untouched.  
+
+============================================================  
+section 2 — implement stage‑2 loader skeleton  
+============================================================  
+
+1. boot/stage2.asm should:  
+   - start at org 0x8000.  
+   - initialize segment registers.  
+   - print a banner (“stage2: mining-os loader skeleton”).  
+   - halt in place (infinite loop).  
+
+2. no disk reads, no gdt, no mode switches.  
+
+============================================================  
+section 3 — deterministic boot behavior  
+============================================================  
+
+1. bios loads mbr at 0x7c00.  
+2. mbr prints banner, reads stage‑2 from lba 2 into 0x8000.  
+3. mbr jumps to 0x8000.  
+4. stage‑2 prints its banner and halts deterministically.  
+
+============================================================  
+section 4 — no other files modified  
+============================================================  
+
+- do not add gdt or mode switch code.  
+- do not add kernel code.  
+- only introduce stage‑2 skeleton.  
+
+============================================================  
+completion criteria  
+============================================================  
+
+- boot/stage2.asm assembles to boot/stage2.bin without errors.  
+- boot/mbr.asm assembles to boot/mbr.bin without errors.  
+- boot image runs in qemu:  
+  - prints “mbr: mining-os boot entry”  
+  - prints “stage2: mining-os loader skeleton”  
+  - halts deterministically.  
+- all lint warnings and errors resolved.  
+
+============================================================  
+post completion chores  
+============================================================  
+
+1. rename the current phase file by adding a .complete to the end of the name. for example: phase_0003.txt would become phase_0003.txt.complete  
+2. add all files and commit them to git using the following format for the comment.  
+    - feat: phase 0003: stage‑2 loader skeleton + banner handoff  
+3. determine the next phase sequentially and execute it: phase_0004.txt  

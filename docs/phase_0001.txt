@@ -1,0 +1,90 @@
+title: mining-os — phase_0001: minimal mbr boot sector (fasm) + bios banner
+
+intent  
+introduce the first, deterministic boot artifact: a 512‑byte mbr boot sector assembled with fasm that reliably hands control to the bios teletype and confirms boot entry with a banner. no disk i/o yet. no mode switches. this cements the foundational entry point for subsequent stages.
+
+this phase adds:
+- a minimal 512‑byte boot sector (boot/mbr.asm)  
+- bios teletype output routine  
+- deterministic “boot banner” message  
+- clean workspace structure for future phases  
+
+no protected mode.  
+no paging.  
+no long mode.  
+no kernel load.  
+no mining logic.  
+
+============================================================  
+section 1 — define workspace structure  
+============================================================  
+
+1. create a minimal workspace layout:  
+   - boot/ (fasm sources)  
+   - scripts/ (build/run later)  
+   - kernel/ (placeholder for future phases)  
+   - makefile (stub target for assembling mbr)  
+
+2. do not add stage‑2 loader, kernel sources, or scripts here. only the mbr is introduced.  
+
+============================================================  
+section 2 — implement minimal mbr (fasm)  
+============================================================  
+
+1. add boot/mbr.asm containing:  
+   - 16‑bit real mode setup at 0x7c00  
+   - segment register initialization  
+   - a tiny teletype routine (int 0x10, ah=0x0e)  
+   - a static banner string (e.g., “mbr: mining-os boot entry”)  
+   - proper signature 0xaa55 at bytes 510–511  
+
+2. keep total size ≤ 512 bytes. no disk reads, no jumps to other segments beyond simple flow control.  
+
+============================================================  
+section 3 — deterministic boot behavior  
+============================================================  
+
+1. on bios boot:  
+   - execute from 0x7c00  
+   - print the banner deterministically  
+   - halt in place (e.g., infinite loop) after printing  
+
+2. no reliance on environment state beyond standard bios. do not read from disk or memory beyond the boot sector.  
+
+============================================================  
+section 4 — makefile stub (assemble only)  
+============================================================  
+
+1. provide a minimal makefile with targets:  
+   - mbr: assemble boot/mbr.asm into boot/mbr.bin  
+   - clean: remove generated artifacts  
+
+2. do not create disk images or run emulators in this phase.  
+
+============================================================  
+section 5 — no other files modified  
+============================================================  
+
+- do not add stage‑2 loader code.  
+- do not add kernel code or linker scripts.  
+- do not add build/run scripts.  
+- only introduce boot/mbr.asm and a minimal makefile.  
+
+============================================================  
+completion criteria  
+============================================================  
+
+- boot/mbr.asm assembles to boot/mbr.bin without errors or warnings.  
+- boot/mbr.bin is exactly 512 bytes and ends with 0xaa55.  
+- the code at 0x7c00 prints “mbr: mining-os boot entry” deterministically when executed.  
+- workspace compiles unchanged aside from the new mbr and makefile stub.  
+- all lint warnings and errors are resolved.  
+
+============================================================  
+post completion chores  
+============================================================  
+
+1. rename the current phase file by adding a .complete to the end of the name. for example: phase_0001.txt would become phase_0001.txt.complete  
+2. add all files and commit them to git using the following format for the comment.  
+    - feat: phase 0001: minimal mbr boot sector (fasm) + bios banner  
+3. determine the next phase sequentially and execute it: phase_0002.txt  

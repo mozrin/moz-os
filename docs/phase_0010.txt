@@ -1,0 +1,83 @@
+title: mining-os — phase_0010: kernel skeleton + vga text output  
+
+intent  
+introduce deterministic kernel execution by jumping from stage‑2 into kernel.img at 0x00100000. this phase defines a minimal kernel skeleton with a linker script, a `kmain` entry point, and vga text output for debug. no hashing yet. no mining logic.  
+
+this phase adds:  
+- kernel/link.ld (linker script)  
+- kernel/kernel.c (freestanding c source)  
+- `kmain` entry function  
+- vga text output routine (direct write to 0xb8000)  
+- confirmation banner after kernel entry  
+
+no sha‑256.  
+no mining loop.  
+
+============================================================  
+section 1 — workspace structure extension  
+============================================================  
+
+1. add kernel/link.ld with entry point at 0x00100000.  
+2. add kernel/kernel.c with freestanding `kmain`.  
+3. update makefile to build kernel/kernel.img from kernel.c and link.ld.  
+4. modify stage‑2 loader to jump to 0x00100000 after kernel load.  
+
+============================================================  
+section 2 — implement kernel skeleton  
+============================================================  
+
+1. in kernel/kernel.c:  
+   - define `kmain(void)` as entry.  
+   - implement vga text output routine writing to 0xb8000.  
+   - print banner (“kernel: mining-os skeleton entry”).  
+   - halt in place (infinite loop).  
+
+2. in kernel/link.ld:  
+   - set entry symbol to kmain.  
+   - place .text at 0x00100000.  
+
+============================================================  
+section 3 — deterministic boot behavior  
+============================================================  
+
+1. bios loads mbr at 0x7c00.  
+2. mbr prints banner, reads stage‑2 from lba 2 into 0x8000.  
+3. mbr jumps to 0x8000.  
+4. stage‑2 enables a20, loads gdt, enters protected mode, builds paging structures, enters long mode, reads kernel.img into 0x00100000, jumps to 0x00100000.  
+5. kernel executes `kmain`, prints banner, halts deterministically.  
+
+============================================================  
+section 4 — no other files modified  
+============================================================  
+
+- do not add sha‑256 code.  
+- do not add mining loop.  
+- only introduce kernel skeleton and vga output.  
+
+============================================================  
+completion criteria  
+============================================================  
+
+- kernel/link.ld and kernel/kernel.c compile into kernel/kernel.img without errors.  
+- boot/stage2.asm assembles to boot/stage2.bin without errors.  
+- boot/mbr.asm assembles to boot/mbr.bin without errors.  
+- boot image runs in qemu:  
+  - prints “mbr: mining-os boot entry”  
+  - prints “stage2: a20 line enabled”  
+  - prints “stage2: gdt loaded”  
+  - prints “stage2: entered protected mode”  
+  - prints “stage2: paging structures initialized”  
+  - prints “stage2: entered long mode”  
+  - prints “stage2: kernel loaded at 0x00100000”  
+  - prints “kernel: mining-os skeleton entry”  
+  - halts deterministically.  
+- all lint warnings and errors resolved.  
+
+============================================================  
+post completion chores  
+============================================================  
+
+1. rename the current phase file by adding a .complete to the end of the name. for example: phase_0010.txt would become phase_0010.txt.complete  
+2. add all files and commit them to git using the following format for the comment.  
+    - feat: phase 0010: kernel skeleton + vga text output  
+3. determine the next phase sequentially and execute it: phase_0011.txt  

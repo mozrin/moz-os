@@ -1,0 +1,82 @@
+title: mining-os — phase_0014: midstate optimization (sha‑256 first block precomputation)  
+
+intent  
+introduce deterministic midstate optimization to reduce redundant hashing work. this phase modifies the kernel’s mining loop to precompute the sha‑256 state for the first 64 bytes of the block header once, then reuse it for each nonce iteration. only the tail block (last 16 bytes + padding) is recompressed per nonce. this significantly improves efficiency.  
+
+this phase adds:  
+- midstate precomputation routine  
+- modified mining loop using precomputed state  
+- confirmation banner after midstate optimization applied  
+
+no full target comparison yet.  
+no networking.  
+
+============================================================  
+section 1 — workspace structure extension  
+============================================================  
+
+1. modify kernel/kernel.c to include midstate optimization.  
+2. keep kernel/link.ld unchanged.  
+3. keep boot/mbr.asm and boot/stage2.asm unchanged.  
+
+============================================================  
+section 2 — implement midstate optimization  
+============================================================  
+
+1. in kernel/kernel.c:  
+   - compute sha‑256 state for first 64 bytes of header once.  
+   - store resulting midstate.  
+   - in mining loop, copy midstate into working state before processing tail block.  
+   - recompress only tail block with nonce updates.  
+   - run second sha‑256 pass as before.  
+
+2. after applying optimization, print banner (“kernel: midstate optimization active”).  
+
+============================================================  
+section 3 — deterministic boot behavior  
+============================================================  
+
+1. bios loads mbr at 0x7c00.  
+2. mbr prints banner, reads stage‑2 from lba 2 into 0x8000.  
+3. mbr jumps to 0x8000.  
+4. stage‑2 enables a20, loads gdt, enters protected mode, builds paging structures, enters long mode, loads kernel.img into 0x00100000, jumps to kernel.  
+5. kernel executes mining loop with midstate optimization, prints confirmation banner when toy solution found, halts deterministically.  
+
+============================================================  
+section 4 — no other files modified  
+============================================================  
+
+- do not add real target comparison.  
+- do not add networking.  
+- only modify kernel to include midstate optimization.  
+
+============================================================  
+completion criteria  
+============================================================  
+
+- kernel/kernel.c compiles into kernel/kernel.img without errors.  
+- boot/stage2.asm and boot/mbr.asm assemble without errors.  
+- boot image runs in qemu:  
+  - prints “mbr: mining-os boot entry”  
+  - prints “stage2: a20 line enabled”  
+  - prints “stage2: gdt loaded”  
+  - prints “stage2: entered protected mode”  
+  - prints “stage2: paging structures initialized”  
+  - prints “stage2: entered long mode”  
+  - prints “stage2: kernel loaded at 0x00100000”  
+  - prints “kernel: mining-os skeleton entry”  
+  - prints “kernel: sha‑256 compression validated”  
+  - prints “kernel: double sha‑256 validated”  
+  - prints “kernel: midstate optimization active”  
+  - prints “kernel: toy solution found” when condition met  
+  - halts deterministically.  
+- all lint warnings and errors resolved.  
+
+============================================================  
+post completion chores  
+============================================================  
+
+1. rename the current phase file by adding a .complete to the end of the name. for example: phase_0014.txt would become phase_0014.txt.complete  
+2. add all files and commit them to git using the following format for the comment.  
+    - feat: phase 0014: midstate optimization (sha‑256 first block precomputation)  
+3. determine the next phase sequentially and execute it: phase_0015.txt  

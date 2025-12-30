@@ -1,0 +1,84 @@
+title: mining-os — phase_0018: uart share submission (solution broadcast)  
+
+intent  
+extend uart functionality to transmit mining results outward. this phase allows the kernel to send the discovered nonce and hash back over uart once a valid solution meets the target. deterministic formatting ensures reproducible output.  
+
+this phase adds:  
+- uart transmit routine for solution payload  
+- formatting of nonce (4 bytes) and hash (32 bytes) into hex string  
+- broadcast over uart after solution found  
+- confirmation banner after share submission  
+
+no networking stack yet.  
+no pool protocol.  
+
+============================================================  
+section 1 — workspace structure extension  
+============================================================  
+
+1. modify kernel/kernel.c to include uart share submission routine.  
+2. keep kernel/link.ld unchanged.  
+3. keep boot/mbr.asm and boot/stage2.asm unchanged.  
+
+============================================================  
+section 2 — implement uart share submission  
+============================================================  
+
+1. in kernel/kernel.c:  
+   - after mining loop finds valid solution, format nonce and hash into hex string.  
+   - call `uart_puts()` to transmit string over com1.  
+   - print banner (“kernel: share submitted via uart”).  
+
+2. halt in place after submission.  
+
+============================================================  
+section 3 — deterministic boot behavior  
+============================================================  
+
+1. bios loads mbr at 0x7c00.  
+2. mbr prints banner, reads stage‑2 from lba 2 into 0x8000.  
+3. mbr jumps to 0x8000.  
+4. stage‑2 enables a20, loads gdt, enters protected mode, builds paging structures, enters long mode, loads kernel.img into 0x00100000, jumps to kernel.  
+5. kernel initializes uart, ingests block header, runs mining loop with midstate optimization, performs full target comparison, finds valid solution, formats and transmits nonce+hash over uart, prints confirmation banner, halts deterministically.  
+
+============================================================  
+section 4 — no other files modified  
+============================================================  
+
+- do not add networking stack.  
+- do not add pool protocol.  
+- only modify kernel to include uart share submission.  
+
+============================================================  
+completion criteria  
+============================================================  
+
+- kernel/kernel.c compiles into kernel/kernel.img without errors.  
+- boot/stage2.asm and boot/mbr.asm assemble without errors.  
+- boot image runs in qemu with `-serial stdio`:  
+  - prints “mbr: mining-os boot entry”  
+  - prints “stage2: a20 line enabled”  
+  - prints “stage2: gdt loaded”  
+  - prints “stage2: entered protected mode”  
+  - prints “stage2: paging structures initialized”  
+  - prints “stage2: entered long mode”  
+  - prints “stage2: kernel loaded at 0x00100000”  
+  - prints “kernel: mining-os skeleton entry”  
+  - prints “kernel: sha‑256 compression validated”  
+  - prints “kernel: double sha‑256 validated”  
+  - prints “kernel: midstate optimization active”  
+  - prints “kernel: valid solution meets target”  
+  - prints “kernel: uart initialized”  
+  - prints “kernel: block header received via uart”  
+  - prints “kernel: share submitted via uart”  
+  - halts deterministically.  
+- all lint warnings and errors resolved.  
+
+============================================================  
+post completion chores  
+============================================================  
+
+1. rename the current phase file by adding a .complete to the end of the name. for example: phase_0018.txt would become phase_0018.txt.complete  
+2. add all files and commit them to git using the following format for the comment.  
+    - feat: phase 0018: uart share submission (solution broadcast)  
+3. determine the next phase sequentially and execute it: phase_0019.txt  

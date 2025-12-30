@@ -1,0 +1,83 @@
+title: mining-os — phase_0002: bios disk read routine (lba) + stage‑2 loader handoff
+
+intent  
+introduce deterministic disk i/o into the boot path. this phase adds a bios disk read routine using int 0x13 extensions (lba) to load a small stage‑2 loader into memory. the mbr boot sector will now perform a controlled handoff to stage‑2. no mode switches yet. no kernel load. no mining logic.
+
+this phase adds:
+- bios lba disk read routine
+- dap (disk address packet) structure
+- stage‑2 loader binary (boot/stage2.asm)
+- mbr handoff to stage‑2 at 0x8000
+
+no protected mode.  
+no paging.  
+no long mode.  
+no kernel.  
+no hashing.  
+
+============================================================  
+section 1 — extend workspace structure  
+============================================================  
+
+1. add boot/stage2.asm as a placeholder loader.  
+2. update makefile to assemble stage2.asm into boot/stage2.bin.  
+3. keep kernel/ untouched.  
+
+============================================================  
+section 2 — implement bios disk read routine  
+============================================================  
+
+1. in boot/mbr.asm:  
+   - define a disk address packet (dap) aligned to 16 bytes.  
+   - set dap fields: size=0x10, sectors=1, buffer=0x8000, lba=2.  
+   - call int 0x13, ah=0x42 with dap pointer in si.  
+   - handle carry flag for error detection.  
+
+2. after successful read, jump to 0x0000:0x8000.  
+
+============================================================  
+section 3 — stage‑2 loader placeholder  
+============================================================  
+
+1. boot/stage2.asm should:  
+   - print a banner (“stage2: loader entry”).  
+   - halt in place.  
+2. no protected mode or kernel load yet.  
+
+============================================================  
+section 4 — deterministic boot behavior  
+============================================================  
+
+1. bios loads mbr at 0x7c00.  
+2. mbr prints banner, reads stage‑2 from lba 2 into 0x8000.  
+3. mbr jumps to 0x8000.  
+4. stage‑2 prints its banner and halts.  
+
+============================================================  
+section 5 — no other files modified  
+============================================================  
+
+- do not add gdt or mode switch code.  
+- do not add kernel code.  
+- only modify mbr to include disk read routine and add stage‑2 placeholder.  
+
+============================================================  
+completion criteria  
+============================================================  
+
+- boot/mbr.asm assembles to boot/mbr.bin without errors.  
+- boot/stage2.asm assembles to boot/stage2.bin without errors.  
+- boot image runs in qemu:  
+  - prints “mbr: mining-os boot entry”  
+  - prints “stage2: loader entry”  
+  - halts deterministically.  
+- all lint warnings and errors resolved.  
+
+============================================================  
+post completion chores  
+============================================================  
+
+1. rename the current phase file by adding a .complete to the end of the name. for example: phase_0002.txt would become phase_0002.txt.complete  
+2. add all files and commit them to git using the following format for the comment.  
+    - feat: phase 0002: bios disk read routine (lba) + stage‑2 loader handoff  
+3. determine the next phase sequentially and execute it: phase_0003.txt  

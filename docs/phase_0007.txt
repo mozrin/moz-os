@@ -1,0 +1,77 @@
+title: mining-os — phase_0007: paging structures (pml4/pdpt/pd) + identity map  
+
+intent  
+introduce deterministic paging structures to prepare for long mode. this phase builds minimal page tables (pml4, pdpt, pd) that identity map the first 1 giB of memory. the loader will set cr3 to the pml4 base, print a confirmation banner, and halt. no long mode yet. no kernel load. no mining logic.  
+
+this phase adds:  
+- pml4, pdpt, pd structures aligned to 4 kb  
+- identity mapping of low memory (0x00000000–0x3FFFFFFF)  
+- cr3 initialization with pml4 base  
+- confirmation banner after paging setup  
+
+no long mode.  
+no kernel.  
+no hashing.  
+
+============================================================  
+section 1 — workspace structure extension  
+============================================================  
+
+1. modify boot/stage2.asm to include paging structures.  
+2. keep boot/mbr.asm unchanged.  
+3. keep kernel/ untouched.  
+
+============================================================  
+section 2 — implement paging structures  
+============================================================  
+
+1. in boot/stage2.asm:  
+   - define pml4 aligned to 4096 bytes.  
+   - define pdpt aligned to 4096 bytes.  
+   - define pd aligned to 4096 bytes.  
+   - set entries to identity map first 1 giB using 2 mb or 1 giB pages.  
+   - load cr3 with pml4 base.  
+
+2. after loading cr3, print banner (“stage2: paging structures initialized”).  
+3. halt in place.  
+
+============================================================  
+section 3 — deterministic boot behavior  
+============================================================  
+
+1. bios loads mbr at 0x7c00.  
+2. mbr prints banner, reads stage‑2 from lba 2 into 0x8000.  
+3. mbr jumps to 0x8000.  
+4. stage‑2 enables a20, loads gdt, enters protected mode, builds paging structures, sets cr3, prints confirmation banner, halts deterministically.  
+
+============================================================  
+section 4 — no other files modified  
+============================================================  
+
+- do not enable long mode yet.  
+- do not add kernel code.  
+- only modify stage‑2 to build paging structures and set cr3.  
+
+============================================================  
+completion criteria  
+============================================================  
+
+- boot/stage2.asm assembles to boot/stage2.bin without errors.  
+- boot/mbr.asm assembles to boot/mbr.bin without errors.  
+- boot image runs in qemu:  
+  - prints “mbr: mining-os boot entry”  
+  - prints “stage2: a20 line enabled”  
+  - prints “stage2: gdt loaded”  
+  - prints “stage2: entered protected mode”  
+  - prints “stage2: paging structures initialized”  
+  - halts deterministically.  
+- all lint warnings and errors resolved.  
+
+============================================================  
+post completion chores  
+============================================================  
+
+1. rename the current phase file by adding a .complete to the end of the name. for example: phase_0007.txt would become phase_0007.txt.complete  
+2. add all files and commit them to git using the following format for the comment.  
+    - feat: phase 0007: paging structures (pml4/pdpt/pd) + identity map  
+3. determine the next phase sequentially and execute it: phase_0008.txt  

@@ -1,0 +1,74 @@
+Here’s the full **phase_0023** spec, continuing the roadmap toward your phase‑25 testing milestone:
+
+---
+
+title: mining-os — phase_0023: stratum protocol skeleton (job + submit stubs)  
+
+**intent**  
+Introduce a minimal skeleton for Stratum‑like pool communication. This phase defines message formats and stub handlers for job ingestion and share submission, but does not yet implement full JSON parsing or pool logic. It sets the stage for later phases (0024–0025) where actual job ingestion and share submission will be wired in.  
+
+**this phase adds**  
+- Stratum message structures (job, submit)  
+- Stub functions `stratum_ingest()` and `stratum_submit()`  
+- Confirmation banner after skeleton activation (“kernel: stratum skeleton active”)  
+
+---
+
+### section 1 — workspace structure extension
+1. add `kernel/stratum.c` for protocol stubs.  
+2. add `kernel/stratum.h` for message definitions.  
+3. keep kernel/link.ld unchanged.  
+4. keep boot/mbr.asm and boot/stage2.asm unchanged.  
+
+---
+
+### section 2 — implement stratum skeleton
+1. in `kernel/stratum.h`:  
+   - define basic structs for job (header, target) and submit (nonce, hash).  
+
+2. in `kernel/stratum.c`:  
+   - implement `stratum_ingest()` stub: prints banner, returns dummy job.  
+   - implement `stratum_submit()` stub: prints banner, returns success.  
+
+3. in `kernel/kernel.c`:  
+   - call `stratum_init()` at startup.  
+   - print banner (“kernel: stratum skeleton active”).  
+
+---
+
+### section 3 — deterministic boot behavior
+1. bios loads mbr at 0x7c00.  
+2. mbr prints banner, reads stage‑2 from lba 2 into 0x8000.  
+3. mbr jumps to 0x8000.  
+4. stage‑2 enables a20, loads gdt, enters protected mode, builds paging structures, enters long mode, loads kernel.img into 0x00100000, jumps to kernel.  
+5. kernel initializes uart, enters integrated control loop, initializes stratum skeleton, prints confirmation banner, halts deterministically or loops.  
+
+---
+
+### section 4 — no other files modified
+- do not add full json parsing.  
+- do not add pool integration.  
+- only add stratum skeleton stubs.  
+
+---
+
+### completion criteria
+- kernel/kernel.c, kernel/stratum.c, kernel/stratum.h compile into kernel/kernel.img without errors.  
+- boot/stage2.asm and boot/mbr.asm assemble without errors.  
+- boot image runs in qemu with `-serial stdio`:  
+  - prints all prior banners (mbr, stage2, kernel init, sha‑256, double sha‑256, midstate, target, uart init, payload ingestion, share submission, work loop, integrated control loop).  
+  - prints “kernel: stratum skeleton active”.  
+  - halts deterministically or loops.  
+- all lint warnings and errors resolved.  
+
+---
+
+### post completion chores
+1. rename the current phase file by adding a `.complete` to the end of the name. for example: `phase_0023.txt` → `phase_0023.txt.complete`.  
+2. add all files and commit them to git using the following format for the comment:  
+   - `feat: phase 0023: stratum protocol skeleton (job + submit stubs)`  
+3. determine the next phase sequentially and execute it: **phase_0024.txt**  
+
+---
+
+Would you like me to go ahead and draft **phase_0024** next (job ingestion over Stratum), so you can keep the sequence flowing toward your phase‑25 milestone?

@@ -1,0 +1,82 @@
+title: mining-os — phase_0011: sha‑256 compression routine (single block)  
+
+intent  
+introduce deterministic cryptographic hashing by implementing a freestanding sha‑256 compression routine in the kernel. this phase ensures the kernel can process a single 512‑bit block and produce correct output. no double hashing yet. no mining loop.  
+
+this phase adds:  
+- sha‑256 constants (k array)  
+- compression function for one 512‑bit block  
+- test vector validation (static block)  
+- confirmation banner after successful hash  
+
+no double sha‑256.  
+no mining logic.  
+
+============================================================  
+section 1 — workspace structure extension  
+============================================================  
+
+1. modify kernel/kernel.c to include sha‑256 compression routine.  
+2. keep kernel/link.ld unchanged.  
+3. keep boot/mbr.asm and boot/stage2.asm unchanged.  
+
+============================================================  
+section 2 — implement sha‑256 compression routine  
+============================================================  
+
+1. in kernel/kernel.c:  
+   - define sha‑256 constants array (64 words).  
+   - implement helper functions (rotr, ch, maj, sigma0, sigma1).  
+   - implement compression function that updates state h[0..7] given a 512‑bit block.  
+   - initialize state with standard iv values.  
+   - process one static block (e.g., “abc” padded).  
+   - compare result with known test vector.  
+
+2. after successful comparison, print banner (“kernel: sha‑256 compression validated”).  
+3. halt in place.  
+
+============================================================  
+section 3 — deterministic boot behavior  
+============================================================  
+
+1. bios loads mbr at 0x7c00.  
+2. mbr prints banner, reads stage‑2 from lba 2 into 0x8000.  
+3. mbr jumps to 0x8000.  
+4. stage‑2 enables a20, loads gdt, enters protected mode, builds paging structures, enters long mode, loads kernel.img into 0x00100000, jumps to kernel.  
+5. kernel executes sha‑256 compression routine on static block, validates against test vector, prints confirmation banner, halts deterministically.  
+
+============================================================  
+section 4 — no other files modified  
+============================================================  
+
+- do not add double sha‑256 routine.  
+- do not add mining loop.  
+- only modify kernel to include sha‑256 compression routine.  
+
+============================================================  
+completion criteria  
+============================================================  
+
+- kernel/kernel.c compiles into kernel/kernel.img without errors.  
+- boot/stage2.asm and boot/mbr.asm assemble without errors.  
+- boot image runs in qemu:  
+  - prints “mbr: mining-os boot entry”  
+  - prints “stage2: a20 line enabled”  
+  - prints “stage2: gdt loaded”  
+  - prints “stage2: entered protected mode”  
+  - prints “stage2: paging structures initialized”  
+  - prints “stage2: entered long mode”  
+  - prints “stage2: kernel loaded at 0x00100000”  
+  - prints “kernel: mining-os skeleton entry”  
+  - prints “kernel: sha‑256 compression validated”  
+  - halts deterministically.  
+- all lint warnings and errors resolved.  
+
+============================================================  
+post completion chores  
+============================================================  
+
+1. rename the current phase file by adding a .complete to the end of the name. for example: phase_0011.txt would become phase_0011.txt.complete  
+2. add all files and commit them to git using the following format for the comment.  
+    - feat: phase 0011: sha‑256 compression routine (single block)  
+3. determine the next phase sequentially and execute it: phase_0012.txt  

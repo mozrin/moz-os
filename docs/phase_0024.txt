@@ -1,0 +1,74 @@
+Here’s the full **phase_0024** spec, continuing toward your phase‑25 milestone:
+
+---
+
+title: mining-os — phase_0024: stratum job ingestion (header + target from network)  
+
+**intent**  
+Extend the stratum skeleton by actually ingesting block headers and difficulty targets from Stratum job messages. This replaces static or uart‑based payload ingestion with network‑based input. The kernel now mines on jobs received over the Stratum protocol.  
+
+**this phase adds**  
+- Minimal JSON parser for Stratum job messages  
+- Extraction of 80‑byte block header and 32‑byte target from job  
+- Integration with mining loop (dynamic header + target from network)  
+- Confirmation banner after job ingestion (“kernel: stratum job received”)  
+
+---
+
+### section 1 — workspace structure extension
+1. modify `kernel/stratum.c` to implement job ingestion.  
+2. extend `kernel/stratum.h` with job parsing definitions.  
+3. keep kernel/link.ld unchanged.  
+4. keep boot/mbr.asm and boot/stage2.asm unchanged.  
+
+---
+
+### section 2 — implement stratum job ingestion
+1. in `kernel/stratum.c`:  
+   - implement `stratum_ingest_job(const char* msg, uint8_t* header, uint8_t* target)`.  
+   - parse minimal JSON fields for header and target (simplified parser).  
+   - copy into kernel buffers.  
+   - print banner (“kernel: stratum job received”).  
+
+2. in `kernel/kernel.c`:  
+   - replace uart ingestion with `stratum_ingest_job()`.  
+   - mining loop now uses header + target from network.  
+
+---
+
+### section 3 — deterministic boot behavior
+1. bios loads mbr at 0x7c00.  
+2. mbr prints banner, reads stage‑2 from lba 2 into 0x8000.  
+3. mbr jumps to 0x8000.  
+4. stage‑2 enables a20, loads gdt, enters protected mode, builds paging structures, enters long mode, loads kernel.img into 0x00100000, jumps to kernel.  
+5. kernel initializes uart + networking stack, initializes stratum skeleton, ingests job message, prints confirmation banner, runs mining loop with network‑supplied header + target, halts deterministically or loops.  
+
+---
+
+### section 4 — no other files modified
+- do not add share submission yet.  
+- do not add full pool protocol.  
+- only modify kernel to ingest stratum job.  
+
+---
+
+### completion criteria
+- kernel/kernel.c, kernel/stratum.c, kernel/stratum.h compile into kernel/kernel.img without errors.  
+- boot/stage2.asm and boot/mbr.asm assemble without errors.  
+- boot image runs in qemu with networking enabled:  
+  - prints all prior banners (mbr, stage2, kernel init, sha‑256, double sha‑256, midstate, target, uart init, payload ingestion, share submission, work loop, integrated control loop, stratum skeleton).  
+  - prints “kernel: stratum job received” after job ingestion.  
+  - continues mining loop with network‑supplied header + target.  
+- all lint warnings and errors resolved.  
+
+---
+
+### post completion chores
+1. rename the current phase file by adding a `.complete` to the end of the name. for example: `phase_0024.txt` → `phase_0024.txt.complete`.  
+2. add all files and commit them to git using the following format for the comment:  
+   - `feat: phase 0024: stratum job ingestion (header + target from network)`  
+3. determine the next phase sequentially and execute it: **phase_0025.txt**  
+
+---
+
+Would you like me to go ahead and draft **phase_0025** now — the final milestone phase where shares are submitted back to the pool — so you’ve got the complete testing loop ready?

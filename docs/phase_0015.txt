@@ -1,0 +1,80 @@
+title: mining-os — phase_0015: full target comparison (256‑bit check + endianness)  
+
+intent  
+introduce deterministic target comparison logic for mining. this phase extends the kernel’s mining loop to perform a full 256‑bit comparison between the computed double sha‑256 hash and a provided target value. it also ensures correct handling of endianness (little vs big endian) when interpreting the hash and target.  
+
+this phase adds:  
+- 256‑bit comparison routine  
+- endian conversion helpers  
+- integration into mining loop  
+- confirmation banner when valid solution meets target  
+
+no uart.  
+no networking.  
+
+============================================================  
+section 1 — workspace structure extension  
+============================================================  
+
+1. modify kernel/kernel.c to include target comparison routine.  
+2. keep kernel/link.ld unchanged.  
+3. keep boot/mbr.asm and boot/stage2.asm unchanged.  
+
+============================================================  
+section 2 — implement full target comparison  
+============================================================  
+
+1. in kernel/kernel.c:  
+   - define target as 32‑byte array (static for now).  
+   - implement function `compare256(const uint8_t hash[32], const uint8_t target[32])` returning true if hash ≤ target.  
+   - handle endian conversion: bitcoin block headers produce little‑endian hashes, so convert appropriately before comparison.  
+   - integrate comparison into mining loop.  
+   - if condition met, print banner (“kernel: valid solution meets target”), halt.  
+
+============================================================  
+section 3 — deterministic boot behavior  
+============================================================  
+
+1. bios loads mbr at 0x7c00.  
+2. mbr prints banner, reads stage‑2 from lba 2 into 0x8000.  
+3. mbr jumps to 0x8000.  
+4. stage‑2 enables a20, loads gdt, enters protected mode, builds paging structures, enters long mode, loads kernel.img into 0x00100000, jumps to kernel.  
+5. kernel executes mining loop with midstate optimization, performs full 256‑bit target comparison, prints confirmation banner when valid solution found, halts deterministically.  
+
+============================================================  
+section 4 — no other files modified  
+============================================================  
+
+- do not add uart or networking.  
+- only modify kernel to include full target comparison.  
+
+============================================================  
+completion criteria  
+============================================================  
+
+- kernel/kernel.c compiles into kernel/kernel.img without errors.  
+- boot/stage2.asm and boot/mbr.asm assemble without errors.  
+- boot image runs in qemu:  
+  - prints “mbr: mining-os boot entry”  
+  - prints “stage2: a20 line enabled”  
+  - prints “stage2: gdt loaded”  
+  - prints “stage2: entered protected mode”  
+  - prints “stage2: paging structures initialized”  
+  - prints “stage2: entered long mode”  
+  - prints “stage2: kernel loaded at 0x00100000”  
+  - prints “kernel: mining-os skeleton entry”  
+  - prints “kernel: sha‑256 compression validated”  
+  - prints “kernel: double sha‑256 validated”  
+  - prints “kernel: midstate optimization active”  
+  - prints “kernel: valid solution meets target” when condition met  
+  - halts deterministically.  
+- all lint warnings and errors resolved.  
+
+============================================================  
+post completion chores  
+============================================================  
+
+1. rename the current phase file by adding a .complete to the end of the name. for example: phase_0015.txt would become phase_0015.txt.complete  
+2. add all files and commit them to git using the following format for the comment.  
+    - feat: phase 0015: full target comparison (256‑bit check + endianness)  
+3. determine the next phase sequentially and execute it: phase_0016.txt  

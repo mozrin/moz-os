@@ -1,0 +1,75 @@
+title: mining-os — phase_0022: networking stack initialization (basic tcp/ip over uart or nic)  
+
+intent  
+extend mining‑os beyond standalone uart operation by introducing a minimal networking stack. this phase sets up deterministic packet handling for basic tcp/ip communication. the kernel can now exchange data with external systems over a network interface (either via uart‑tunneled tcp or a simple nic driver).  
+
+this phase adds:  
+- minimal ip + tcp packet structures  
+- checksum routines  
+- transmit/receive routines over chosen interface (uart or nic)  
+- confirmation banner after networking stack init  
+
+no stratum protocol yet.  
+no pool integration.  
+
+============================================================  
+section 1 — workspace structure extension  
+============================================================  
+
+1. modify kernel/kernel.c to include networking stack initialization.  
+2. add kernel/net.c for tcp/ip routines.  
+3. keep kernel/link.ld unchanged.  
+4. keep boot/mbr.asm and boot/stage2.asm unchanged.  
+
+============================================================  
+section 2 — implement networking stack  
+============================================================  
+
+1. in kernel/net.c:  
+   - define ip header struct (src, dst, length, checksum).  
+   - define tcp header struct (ports, seq, ack, flags, checksum).  
+   - implement checksum calculation.  
+   - implement `net_send()` and `net_recv()` using uart or nic.  
+
+2. in kernel/kernel.c:  
+   - call `net_init()` at startup.  
+   - print banner (“kernel: networking stack initialized”).  
+
+============================================================  
+section 3 — deterministic boot behavior  
+============================================================  
+
+1. bios loads mbr at 0x7c00.  
+2. mbr prints banner, reads stage‑2 from lba 2 into 0x8000.  
+3. mbr jumps to 0x8000.  
+4. stage‑2 enables a20, loads gdt, enters protected mode, builds paging structures, enters long mode, loads kernel.img into 0x00100000, jumps to kernel.  
+5. kernel initializes uart, ingests header + target, runs mining loop, submits share, prints integrated control loop banner, initializes networking stack, prints networking banner, halts deterministically or loops.  
+
+============================================================  
+section 4 — no other files modified  
+============================================================  
+
+- do not add stratum protocol.  
+- do not add pool integration.  
+- only modify kernel to include networking stack.  
+
+============================================================  
+completion criteria  
+============================================================  
+
+- kernel/kernel.c and kernel/net.c compile into kernel/kernel.img without errors.  
+- boot/stage2.asm and boot/mbr.asm assemble without errors.  
+- boot image runs in qemu with `-serial stdio` or nic emulation:  
+  - prints all prior banners (mbr, stage2, kernel init, sha‑256, double sha‑256, midstate, target, uart init, payload ingestion, share submission, work loop, integrated control loop).  
+  - prints “kernel: networking stack initialized”.  
+  - halts deterministically or loops.  
+- all lint warnings and errors resolved.  
+
+============================================================  
+post completion chores  
+============================================================  
+
+1. rename the current phase file by adding a .complete to the end of the name. for example: phase_0022.txt would become phase_0022.txt.complete  
+2. add all files and commit them to git using the following format for the comment.  
+    - feat: phase 0022: networking stack initialization (basic tcp/ip over uart or nic)  
+3. determine the next phase sequentially and execute it: phase_0023.txt  

@@ -1,0 +1,84 @@
+title: mining-os — phase_0013: mining loop (toy nonce iteration + target check)  
+
+intent  
+introduce deterministic nonce iteration and toy target comparison to simulate mining behavior. this phase extends the kernel to loop over nonce values, update the block header, run double sha‑256, and check against a simplified target (e.g., first byte == 0x00). no midstate optimization yet. no real difficulty target.  
+
+this phase adds:  
+- nonce iteration loop in kernel  
+- header update with nonce field  
+- double sha‑256 invocation per nonce  
+- toy target comparison (leading zero byte)  
+- confirmation banner when toy solution found  
+
+no midstate optimization.  
+no real target comparison.  
+
+============================================================  
+section 1 — workspace structure extension  
+============================================================  
+
+1. modify kernel/kernel.c to include mining loop.  
+2. keep kernel/link.ld unchanged.  
+3. keep boot/mbr.asm and boot/stage2.asm unchanged.  
+
+============================================================  
+section 2 — implement mining loop (toy)  
+============================================================  
+
+1. in kernel/kernel.c:  
+   - define static 80‑byte header.  
+   - iterate nonce from 0 to 0xffffffff.  
+   - update header[76..79] with current nonce.  
+   - run double sha‑256 on header.  
+   - check if hash[0] == 0x00.  
+   - if condition met, print banner (“kernel: toy solution found”), halt.  
+
+2. if no solution found, loop continues indefinitely.  
+
+============================================================  
+section 3 — deterministic boot behavior  
+============================================================  
+
+1. bios loads mbr at 0x7c00.  
+2. mbr prints banner, reads stage‑2 from lba 2 into 0x8000.  
+3. mbr jumps to 0x8000.  
+4. stage‑2 enables a20, loads gdt, enters protected mode, builds paging structures, enters long mode, loads kernel.img into 0x00100000, jumps to kernel.  
+5. kernel executes mining loop, iterates nonces, prints confirmation banner when toy solution found, halts deterministically.  
+
+============================================================  
+section 4 — no other files modified  
+============================================================  
+
+- do not add midstate optimization.  
+- do not add real target comparison.  
+- only modify kernel to include toy mining loop.  
+
+============================================================  
+completion criteria  
+============================================================  
+
+- kernel/kernel.c compiles into kernel/kernel.img without errors.  
+- boot/stage2.asm and boot/mbr.asm assemble without errors.  
+- boot image runs in qemu:  
+  - prints “mbr: mining-os boot entry”  
+  - prints “stage2: a20 line enabled”  
+  - prints “stage2: gdt loaded”  
+  - prints “stage2: entered protected mode”  
+  - prints “stage2: paging structures initialized”  
+  - prints “stage2: entered long mode”  
+  - prints “stage2: kernel loaded at 0x00100000”  
+  - prints “kernel: mining-os skeleton entry”  
+  - prints “kernel: sha‑256 compression validated”  
+  - prints “kernel: double sha‑256 validated”  
+  - prints “kernel: toy solution found” when condition met  
+  - halts deterministically.  
+- all lint warnings and errors resolved.  
+
+============================================================  
+post completion chores  
+============================================================  
+
+1. rename the current phase file by adding a .complete to the end of the name. for example: phase_0013.txt would become phase_0013.txt.complete  
+2. add all files and commit them to git using the following format for the comment.  
+    - feat: phase 0013: mining loop (toy nonce iteration + target check)  
+3. determine the next phase sequentially and execute it: phase_0014.txt  

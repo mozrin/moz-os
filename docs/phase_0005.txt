@@ -1,0 +1,78 @@
+title: mining-os — phase_0005: gdt setup + descriptor initialization  
+
+intent  
+introduce deterministic segmentation control by defining and loading a global descriptor table (gdt). this phase ensures the stage‑2 loader has valid code and data segments in preparation for protected mode entry. no mode switch yet. no paging. no kernel load. no mining logic.  
+
+this phase adds:  
+- gdt definition (null, code, data descriptors)  
+- gdt descriptor structure  
+- lgdt instruction to load gdt  
+- confirmation banner after gdt load  
+
+no protected mode.  
+no paging.  
+no long mode.  
+no kernel.  
+no hashing.  
+
+============================================================  
+section 1 — workspace structure extension  
+============================================================  
+
+1. modify boot/stage2.asm to include gdt definition and lgdt instruction.  
+2. keep boot/mbr.asm unchanged.  
+3. keep kernel/ untouched.  
+
+============================================================  
+section 2 — implement gdt setup  
+============================================================  
+
+1. in boot/stage2.asm:  
+   - define gdt with three entries:  
+     - null descriptor  
+     - code segment descriptor (base=0, limit=0xFFFFF, flags=0x9A)  
+     - data segment descriptor (base=0, limit=0xFFFFF, flags=0x92)  
+   - define gdt descriptor (size and base).  
+   - execute lgdt with gdt descriptor.  
+
+2. after loading gdt, print banner (“stage2: gdt loaded”).  
+3. halt in place.  
+
+============================================================  
+section 3 — deterministic boot behavior  
+============================================================  
+
+1. bios loads mbr at 0x7c00.  
+2. mbr prints banner, reads stage‑2 from lba 2 into 0x8000.  
+3. mbr jumps to 0x8000.  
+4. stage‑2 enables a20, loads gdt, prints confirmation banner, halts deterministically.  
+
+============================================================  
+section 4 — no other files modified  
+============================================================  
+
+- do not add protected mode switch code.  
+- do not add kernel code.  
+- only modify stage‑2 to define and load gdt.  
+
+============================================================  
+completion criteria  
+============================================================  
+
+- boot/stage2.asm assembles to boot/stage2.bin without errors.  
+- boot/mbr.asm assembles to boot/mbr.bin without errors.  
+- boot image runs in qemu:  
+  - prints “mbr: mining-os boot entry”  
+  - prints “stage2: a20 line enabled”  
+  - prints “stage2: gdt loaded”  
+  - halts deterministically.  
+- all lint warnings and errors resolved.  
+
+============================================================  
+post completion chores  
+============================================================  
+
+1. rename the current phase file by adding a .complete to the end of the name. for example: phase_0005.txt would become phase_0005.txt.complete  
+2. add all files and commit them to git using the following format for the comment.  
+    - feat: phase 0005: gdt setup + descriptor initialization  
+3. determine the next phase sequentially and execute it: phase_0006.txt  

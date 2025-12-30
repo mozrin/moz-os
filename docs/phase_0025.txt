@@ -1,0 +1,63 @@
+title: mining-os — phase_0025: stratum share submission (nonce + hash back to pool)  
+
+**intent**  
+Complete the Stratum protocol loop by transmitting valid solutions back to the pool. This phase formats the discovered nonce and hash into a Stratum submit message, sends it over the network stack, and confirms submission. This marks the end of the “core” roadmap for testing.  
+
+**this phase adds**  
+- JSON formatter for Stratum submit message  
+- Integration with mining loop (on valid solution, send submit)  
+- Confirmation banner after submission (“kernel: stratum share submitted”)  
+
+---
+
+### section 1 — workspace structure extension
+1. extend `kernel/stratum.c` with share submission routine.  
+2. extend `kernel/stratum.h` with submit message definitions.  
+3. keep kernel/link.ld unchanged.  
+4. keep boot/mbr.asm and boot/stage2.asm unchanged.  
+
+---
+
+### section 2 — implement stratum share submission
+1. in `kernel/stratum.c`:  
+   - implement `stratum_submit_share(uint32_t nonce, const uint8_t* hash)`.  
+   - format nonce + hash into JSON submit message.  
+   - send via `net_send()`.  
+   - print banner (“kernel: stratum share submitted”).  
+
+2. in `kernel/kernel.c`:  
+   - after mining loop finds valid solution, call `stratum_submit_share()`.  
+
+---
+
+### section 3 — deterministic boot behavior
+1. bios loads mbr at 0x7c00.  
+2. mbr prints banner, reads stage‑2 from lba 2 into 0x8000.  
+3. mbr jumps to 0x8000.  
+4. stage‑2 enables a20, loads gdt, enters protected mode, builds paging structures, enters long mode, loads kernel.img into 0x00100000, jumps to kernel.  
+5. kernel initializes uart + networking stack, initializes stratum skeleton, ingests job message, prints confirmation banner, runs mining loop with network‑supplied header + target, finds valid solution, submits share via stratum, prints confirmation banner, repeats deterministically.  
+
+---
+
+### section 4 — no other files modified
+- do not add full pool protocol beyond job/submit.  
+- only modify kernel to include stratum share submission.  
+
+---
+
+### completion criteria
+- kernel/kernel.c, kernel/stratum.c, kernel/stratum.h compile into kernel/kernel.img without errors.  
+- boot/stage2.asm and boot/mbr.asm assemble without errors.  
+- boot image runs in qemu with networking enabled:  
+  - prints all prior banners (mbr, stage2, kernel init, sha‑256, double sha‑256, midstate, target, uart init, payload ingestion, share submission, work loop, integrated control loop, stratum skeleton, stratum job received).  
+  - prints “kernel: stratum share submitted” after solution submission.  
+  - repeats deterministically for each new job.  
+- all lint warnings and errors resolved.  
+
+---
+
+### post completion chores
+1. rename the current phase file by adding a `.complete` to the end of the name. for example: `phase_0025.txt` → `phase_0025.txt.complete`.  
+2. add all files and commit them to git using the following format for the comment:  
+   - `feat: phase 0025: stratum share submission (nonce + hash back to pool)`  
+3. milestone reached: pause here for **testing**. 

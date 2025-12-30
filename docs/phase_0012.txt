@@ -1,0 +1,83 @@
+title: mining-os — phase_0012: double sha‑256 routine (block header hashing)  
+
+intent  
+extend the kernel’s cryptographic capability by chaining two sha‑256 compressions to produce a double sha‑256 hash, as required for bitcoin block header validation. this phase ensures the kernel can process an 80‑byte header, pad it correctly, run two sequential hashes, and produce deterministic output. no mining loop yet.  
+
+this phase adds:  
+- double sha‑256 function (dsha256)  
+- header padding logic (80‑byte input → two blocks)  
+- validation against known block header test vector  
+- confirmation banner after successful double hash  
+
+no mining loop.  
+no nonce iteration.  
+
+============================================================  
+section 1 — workspace structure extension  
+============================================================  
+
+1. modify kernel/kernel.c to include double sha‑256 routine.  
+2. keep kernel/link.ld unchanged.  
+3. keep boot/mbr.asm and boot/stage2.asm unchanged.  
+
+============================================================  
+section 2 — implement double sha‑256 routine  
+============================================================  
+
+1. in kernel/kernel.c:  
+   - define function `dsha256(const uint8_t header[80], uint8_t out[32])`.  
+   - run sha‑256 compression twice:  
+     - first pass: process 80‑byte header with padding.  
+     - second pass: process 32‑byte digest with padding.  
+   - output final 32‑byte hash.  
+
+2. validate against a known block header test vector.  
+3. after successful validation, print banner (“kernel: double sha‑256 validated”).  
+4. halt in place.  
+
+============================================================  
+section 3 — deterministic boot behavior  
+============================================================  
+
+1. bios loads mbr at 0x7c00.  
+2. mbr prints banner, reads stage‑2 from lba 2 into 0x8000.  
+3. mbr jumps to 0x8000.  
+4. stage‑2 enables a20, loads gdt, enters protected mode, builds paging structures, enters long mode, loads kernel.img into 0x00100000, jumps to kernel.  
+5. kernel executes double sha‑256 routine on static header, validates against test vector, prints confirmation banner, halts deterministically.  
+
+============================================================  
+section 4 — no other files modified  
+============================================================  
+
+- do not add mining loop.  
+- do not add nonce iteration.  
+- only modify kernel to include double sha‑256 routine.  
+
+============================================================  
+completion criteria  
+============================================================  
+
+- kernel/kernel.c compiles into kernel/kernel.img without errors.  
+- boot/stage2.asm and boot/mbr.asm assemble without errors.  
+- boot image runs in qemu:  
+  - prints “mbr: mining-os boot entry”  
+  - prints “stage2: a20 line enabled”  
+  - prints “stage2: gdt loaded”  
+  - prints “stage2: entered protected mode”  
+  - prints “stage2: paging structures initialized”  
+  - prints “stage2: entered long mode”  
+  - prints “stage2: kernel loaded at 0x00100000”  
+  - prints “kernel: mining-os skeleton entry”  
+  - prints “kernel: sha‑256 compression validated”  
+  - prints “kernel: double sha‑256 validated”  
+  - halts deterministically.  
+- all lint warnings and errors resolved.  
+
+============================================================  
+post completion chores  
+============================================================  
+
+1. rename the current phase file by adding a .complete to the end of the name. for example: phase_0012.txt would become phase_0012.txt.complete  
+2. add all files and commit them to git using the following format for the comment.  
+    - feat: phase 0012: double sha‑256 routine (block header hashing)  
+3. determine the next phase sequentially and execute it: phase_0013.txt  

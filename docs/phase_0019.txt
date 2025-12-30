@@ -1,0 +1,77 @@
+title: mining-os — phase_0019: deterministic work loop (continuous payload ingestion + share submission)  
+
+intent  
+extend kernel mining behavior into a continuous deterministic loop. this phase integrates uart payload ingestion and share submission into a repeating cycle: receive block header, mine until solution found, submit share, then reset to wait for next payload. ensures reproducible operation without manual restart.  
+
+this phase adds:  
+- main work loop in kernel  
+- cycle: ingest payload → mine → submit share → reset  
+- deterministic reset of state after each cycle  
+- confirmation banner after each cycle (“kernel: work loop cycle complete”)  
+
+no networking stack yet.  
+no pool protocol.  
+
+============================================================  
+section 1 — workspace structure extension  
+============================================================  
+
+1. modify kernel/kernel.c to include main work loop.  
+2. keep kernel/link.ld unchanged.  
+3. keep boot/mbr.asm and boot/stage2.asm unchanged.  
+
+============================================================  
+section 2 — implement deterministic work loop  
+============================================================  
+
+1. in kernel/kernel.c:  
+   - wrap mining logic in infinite loop.  
+   - at start of loop, call `uart_read_block(header, 80)`.  
+   - run mining loop with midstate optimization + full target comparison.  
+   - when solution found, format nonce+hash, call `uart_puts()` to submit.  
+   - print banner (“kernel: work loop cycle complete”).  
+   - reset state and repeat.  
+
+============================================================  
+section 3 — deterministic boot behavior  
+============================================================  
+
+1. bios loads mbr at 0x7c00.  
+2. mbr prints banner, reads stage‑2 from lba 2 into 0x8000.  
+3. mbr jumps to 0x8000.  
+4. stage‑2 enables a20, loads gdt, enters protected mode, builds paging structures, enters long mode, loads kernel.img into 0x00100000, jumps to kernel.  
+5. kernel initializes uart, enters main work loop:  
+   - ingests block header via uart  
+   - mines until solution found  
+   - submits share via uart  
+   - prints confirmation banner  
+   - repeats deterministically.  
+
+============================================================  
+section 4 — no other files modified  
+============================================================  
+
+- do not add networking stack.  
+- do not add pool protocol.  
+- only modify kernel to include deterministic work loop.  
+
+============================================================  
+completion criteria  
+============================================================  
+
+- kernel/kernel.c compiles into kernel/kernel.img without errors.  
+- boot/stage2.asm and boot/mbr.asm assemble without errors.  
+- boot image runs in qemu with `-serial stdio`:  
+  - prints all prior banners (mbr, stage2, kernel init, sha‑256, double sha‑256, midstate, target, uart init, payload ingestion, share submission).  
+  - prints “kernel: work loop cycle complete” after each cycle.  
+  - repeats deterministically for each new payload.  
+- all lint warnings and errors resolved.  
+
+============================================================  
+post completion chores  
+============================================================  
+
+1. rename the current phase file by adding a .complete to the end of the name. for example: phase_0019.txt would become phase_0019.txt.complete  
+2. add all files and commit them to git using the following format for the comment.  
+    - feat: phase 0019: deterministic work loop (continuous payload ingestion + share submission)  
+3. determine the next phase sequentially and execute it: phase_0020.txt  

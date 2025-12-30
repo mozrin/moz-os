@@ -1,0 +1,72 @@
+title: mining-os — phase_0004: a20 line enable + verification  
+
+intent  
+introduce deterministic memory access beyond 1mb by enabling the a20 line. this phase ensures the cpu can address memory above 0xFFFFF, which is required for protected mode and long mode transitions later. the loader will enable a20 and print a confirmation banner. no gdt yet. no paging. no kernel load. no mining logic.  
+
+this phase adds:  
+- a20 line enable routine (port 0x92 method)  
+- confirmation banner output  
+- deterministic halt after enabling  
+
+no protected mode.  
+no paging.  
+no long mode.  
+no kernel.  
+no hashing.  
+
+============================================================  
+section 1 — workspace structure extension  
+============================================================  
+
+1. modify boot/stage2.asm to include a20 enable routine.  
+2. keep boot/mbr.asm unchanged.  
+3. keep kernel/ untouched.  
+
+============================================================  
+section 2 — implement a20 enable routine  
+============================================================  
+
+1. in boot/stage2.asm:  
+   - read port 0x92.  
+   - set bit 1 (a20 enable).  
+   - write back to port 0x92.  
+2. after enabling, print banner (“stage2: a20 line enabled”).  
+3. halt in place.  
+
+============================================================  
+section 3 — deterministic boot behavior  
+============================================================  
+
+1. bios loads mbr at 0x7c00.  
+2. mbr prints banner, reads stage‑2 from lba 2 into 0x8000.  
+3. mbr jumps to 0x8000.  
+4. stage‑2 enables a20, prints confirmation banner, halts deterministically.  
+
+============================================================  
+section 4 — no other files modified  
+============================================================  
+
+- do not add gdt or mode switch code.  
+- do not add kernel code.  
+- only modify stage‑2 to enable a20.  
+
+============================================================  
+completion criteria  
+============================================================  
+
+- boot/stage2.asm assembles to boot/stage2.bin without errors.  
+- boot/mbr.asm assembles to boot/mbr.bin without errors.  
+- boot image runs in qemu:  
+  - prints “mbr: mining-os boot entry”  
+  - prints “stage2: a20 line enabled”  
+  - halts deterministically.  
+- all lint warnings and errors resolved.  
+
+============================================================  
+post completion chores  
+============================================================  
+
+1. rename the current phase file by adding a .complete to the end of the name. for example: phase_0004.txt would become phase_0004.txt.complete  
+2. add all files and commit them to git using the following format for the comment.  
+    - feat: phase 0004: a20 line enable + verification  
+3. determine the next phase sequentially and execute it: phase_0005.txt  

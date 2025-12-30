@@ -1,0 +1,88 @@
+title: mining-os — phase_0016: uart driver initialization (serial tx/rx)  
+
+intent  
+introduce deterministic serial communication by implementing a uart driver in the kernel. this phase sets up the standard pc serial port (com1, i/o base 0x3f8), configures baud rate, parity, and stop bits, and provides routines for transmit (tx) and receive (rx). no payload ingestion yet. no share submission.  
+
+this phase adds:  
+- uart initialization routine (configure com1 registers)  
+- uart transmit routine (send single character / string)  
+- uart receive routine (read single character)  
+- confirmation banner after uart init  
+
+no payload ingestion.  
+no networking.  
+
+============================================================  
+section 1 — workspace structure extension  
+============================================================  
+
+1. modify kernel/kernel.c to include uart driver functions.  
+2. keep kernel/link.ld unchanged.  
+3. keep boot/mbr.asm and boot/stage2.asm unchanged.  
+
+============================================================  
+section 2 — implement uart driver  
+============================================================  
+
+1. in kernel/kernel.c:  
+   - define `uart_init()` to configure com1:  
+     - divisor latch for baud rate (e.g., 115200).  
+     - line control register for 8n1 (8 data bits, no parity, 1 stop bit).  
+     - fifo control register to enable fifo.  
+     - modem control register to enable dtr/rts.  
+   - define `uart_putc(char c)` to send a character.  
+   - define `uart_puts(const char* s)` to send a string.  
+   - define `uart_getc()` to read a character when available.  
+
+2. after initialization, print banner to vga (“kernel: uart initialized”) and send string over uart (“uart: hello from mining-os”).  
+
+============================================================  
+section 3 — deterministic boot behavior  
+============================================================  
+
+1. bios loads mbr at 0x7c00.  
+2. mbr prints banner, reads stage‑2 from lba 2 into 0x8000.  
+3. mbr jumps to 0x8000.  
+4. stage‑2 enables a20, loads gdt, enters protected mode, builds paging structures, enters long mode, loads kernel.img into 0x00100000, jumps to kernel.  
+5. kernel executes uart initialization, prints vga banner, sends uart string, halts deterministically.  
+
+============================================================  
+section 4 — no other files modified  
+============================================================  
+
+- do not add payload ingestion.  
+- do not add networking.  
+- only modify kernel to include uart driver.  
+
+============================================================  
+completion criteria  
+============================================================  
+
+- kernel/kernel.c compiles into kernel/kernel.img without errors.  
+- boot/stage2.asm and boot/mbr.asm assemble without errors.  
+- boot image runs in qemu with `-serial stdio`:  
+  - prints “mbr: mining-os boot entry”  
+  - prints “stage2: a20 line enabled”  
+  - prints “stage2: gdt loaded”  
+  - prints “stage2: entered protected mode”  
+  - prints “stage2: paging structures initialized”  
+  - prints “stage2: entered long mode”  
+  - prints “stage2: kernel loaded at 0x00100000”  
+  - prints “kernel: mining-os skeleton entry”  
+  - prints “kernel: sha‑256 compression validated”  
+  - prints “kernel: double sha‑256 validated”  
+  - prints “kernel: midstate optimization active”  
+  - prints “kernel: valid solution meets target”  
+  - prints “kernel: uart initialized” on vga  
+  - outputs “uart: hello from mining-os” on serial  
+  - halts deterministically.  
+- all lint warnings and errors resolved.  
+
+============================================================  
+post completion chores  
+============================================================  
+
+1. rename the current phase file by adding a .complete to the end of the name. for example: phase_0016.txt would become phase_0016.txt.complete  
+2. add all files and commit them to git using the following format for the comment.  
+    - feat: phase 0016: uart driver initialization (serial tx/rx)  
+3. determine the next phase sequentially and execute it: phase_0017.txt  
