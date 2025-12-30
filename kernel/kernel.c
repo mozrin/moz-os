@@ -339,20 +339,6 @@ void kmain() {
     print_string("kernel: uart initialized", 13);
     uart_puts("uart: hello from moz-os\n");
 
-    /* Define Target (Static for now, could be part of payload later) */
-    /* Based on Genesis Hash: Bytes 26=0x19, 27..31=0x00 */
-    /* Set Target slightly higher: Byte 26=0x20, 27..31=0x00, rest 0xFF */
-    uint8_t target[32];
-    for(i=0; i<32; i++) target[i] = 0xff;
-    /* High bytes (LE index 27..31) must be 0 to match genesis difficulty approx */
-    target[31] = 0x00;
-    target[30] = 0x00;
-    target[29] = 0x00;
-    target[28] = 0x00;
-    target[27] = 0x00;
-    /* Byte 26: Genesis is 0x19. Target 0x20 is easier. */
-    target[26] = 0x20;
-
     while (1) {
         /* Wait for payload */
         print_string("kernel: waiting for block header...", 14);
@@ -361,6 +347,12 @@ void kmain() {
         uint8_t received_header[80];
         uart_read_block(received_header, 80);
         print_string("kernel: block header received via uart", 15);
+        
+        /* Wait for target */
+        uart_puts("uart: waiting for 32-byte target\n");
+        uint8_t target[32];
+        uart_read_block(target, 32);
+        print_string("kernel: difficulty target received via uart", 18);
         
         print_string("kernel: midstate optimization active", 11); /* Line 11 reuse or overwrite */
 
