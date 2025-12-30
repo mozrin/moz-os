@@ -236,6 +236,36 @@ void kmain() {
         print_string("kernel: double sha-256 FAILED", 9);
     }
     
+    /* --------------------------------------------------------------------- */
+    /* Mining Loop (Toy Target: Hash[0] == 0x00) */
+    /* --------------------------------------------------------------------- */
+    
+    /* We reuse genesis_header. Reset nonce to 0 and start mining. */
+    uint32_t nonce = 0;
+    uint8_t hash[32];
+    
+    while (nonce < 0xffffffff) {
+        /* Update Nonce (Offsets 76-79, Little Endian) */
+        genesis_header[76] = (nonce) & 0xff;
+        genesis_header[77] = (nonce >> 8) & 0xff;
+        genesis_header[78] = (nonce >> 16) & 0xff;
+        genesis_header[79] = (nonce >> 24) & 0xff;
+        
+        /* Compute Hash */
+        dsha256(genesis_header, hash);
+        
+        /* Check Target: First byte == 0x00 */
+        if (hash[0] == 0x00) {
+            print_string("kernel: toy solution found", 10);
+            
+            /* Print Nonce found (optional debug, or just halt) */
+            /* We don't have integer printing yet. Just halt. */
+            break;
+        }
+        
+        nonce++;
+    }
+    
     /* Halt */
     while (1) {
         __asm__("hlt");
