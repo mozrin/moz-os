@@ -2,7 +2,7 @@ Here’s the full **phase_0023** spec, continuing the roadmap toward your phase�
 
 ---
 
-title: mozos — phase_0023: stratum protocol skeleton (job + submit stubs)  
+title: moz-os — phase_0023: stratum protocol skeleton (job + submit stubs)  
 
 **intent**  
 Introduce a minimal skeleton for Stratum‑like pool communication. This phase defines message formats and stub handlers for job ingestion and share submission, but does not yet implement full JSON parsing or pool logic. It sets the stage for later phases (0024–0025) where actual job ingestion and share submission will be wired in.  

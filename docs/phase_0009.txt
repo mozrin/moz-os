@@ -1,4 +1,4 @@
-title: mozos — phase_0009: kernel loader (disk read into 0x00100000)  
+title: moz-os — phase_0009: kernel loader (disk read into 0x00100000)  
 
 intent  
 introduce deterministic loading of the kernel image into high memory. this phase extends the stage‑2 loader to read kernel.img from disk (lba) into physical address 0x00100000. no execution of kernel yet. no mining logic.  
@@ -56,7 +56,7 @@ completion criteria
 - boot/mbr.asm assembles to boot/mbr.bin without errors.  
 - kernel/kernel.c and kernel/link.ld exist as placeholders and build into kernel/kernel.img.  
 - boot image runs in qemu:  
-  - prints “mbr: mozos boot entry”  
+  - prints “mbr: moz-os boot entry”  
   - prints “stage2: a20 line enabled”  
   - prints “stage2: gdt loaded”  
   - prints “stage2: entered protected mode”  

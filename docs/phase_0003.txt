@@ -1,4 +1,4 @@
-title: mozos — phase_0003: stage‑2 loader skeleton + banner handoff
+title: moz-os — phase_0003: stage‑2 loader skeleton + banner handoff
 
 intent  
 introduce a deterministic stage‑2 loader skeleton. this phase ensures that after the mbr reads stage‑2 into memory, execution continues cleanly at 0x8000. the loader will print a banner and halt. no mode switches yet. no kernel load. no mining logic.
@@ -29,7 +29,7 @@ section 2 — implement stage‑2 loader skeleton
 1. boot/stage2.asm should:  
    - start at org 0x8000.  
    - initialize segment registers.  
-   - print a banner (“stage2: mozos loader skeleton”).  
+   - print a banner (“stage2: moz-os loader skeleton”).  
    - halt in place (infinite loop).  
 
 2. no disk reads, no gdt, no mode switches.  
@@ -58,8 +58,8 @@ completion criteria
 - boot/stage2.asm assembles to boot/stage2.bin without errors.  
 - boot/mbr.asm assembles to boot/mbr.bin without errors.  
 - boot image runs in qemu:  
-  - prints “mbr: mozos boot entry”  
-  - prints “stage2: mozos loader skeleton”  
+  - prints “mbr: moz-os boot entry”  
+  - prints “stage2: moz-os loader skeleton”  
   - halts deterministically.  
 - all lint warnings and errors resolved.  
 

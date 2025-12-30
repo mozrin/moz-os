@@ -2,7 +2,7 @@ Here’s the full **phase_0024** spec, continuing toward your phase‑25 milesto
 
 ---
 
-title: mozos — phase_0024: stratum job ingestion (header + target from network)  
+title: moz-os — phase_0024: stratum job ingestion (header + target from network)  
 
 **intent**  
 Extend the stratum skeleton by actually ingesting block headers and difficulty targets from Stratum job messages. This replaces static or uart‑based payload ingestion with network‑based input. The kernel now mines on jobs received over the Stratum protocol.  

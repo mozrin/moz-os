@@ -1,4 +1,4 @@
-title: mozos — phase_0020: deterministic difficulty target ingestion (uart input for dynamic work)  
+title: moz-os — phase_0020: deterministic difficulty target ingestion (uart input for dynamic work)  
 
 intent  
 extend mining loop to accept dynamic difficulty targets via uart. this phase allows the kernel to ingest a 32‑byte target value alongside the block header, enabling variable difficulty work. deterministic ingestion ensures reproducible mining runs with externally supplied targets.  

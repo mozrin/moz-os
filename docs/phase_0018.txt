@@ -1,4 +1,4 @@
-title: mozos — phase_0018: uart share submission (solution broadcast)  
+title: moz-os — phase_0018: uart share submission (solution broadcast)  
 
 intent  
 extend uart functionality to transmit mining results outward. this phase allows the kernel to send the discovered nonce and hash back over uart once a valid solution meets the target. deterministic formatting ensures reproducible output.  
@@ -56,14 +56,14 @@ completion criteria
 - kernel/kernel.c compiles into kernel/kernel.img without errors.  
 - boot/stage2.asm and boot/mbr.asm assemble without errors.  
 - boot image runs in qemu with `-serial stdio`:  
-  - prints “mbr: mozos boot entry”  
+  - prints “mbr: moz-os boot entry”  
   - prints “stage2: a20 line enabled”  
   - prints “stage2: gdt loaded”  
   - prints “stage2: entered protected mode”  
   - prints “stage2: paging structures initialized”  
   - prints “stage2: entered long mode”  
   - prints “stage2: kernel loaded at 0x00100000”  
-  - prints “kernel: mozos skeleton entry”  
+  - prints “kernel: moz-os skeleton entry”  
   - prints “kernel: sha‑256 compression validated”  
   - prints “kernel: double sha‑256 validated”  
   - prints “kernel: midstate optimization active”  

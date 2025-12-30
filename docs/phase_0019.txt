@@ -1,4 +1,4 @@
-title: mozos — phase_0019: deterministic work loop (continuous payload ingestion + share submission)  
+title: moz-os — phase_0019: deterministic work loop (continuous payload ingestion + share submission)  
 
 intent  
 extend kernel mining behavior into a continuous deterministic loop. this phase integrates uart payload ingestion and share submission into a repeating cycle: receive block header, mine until solution found, submit share, then reset to wait for next payload. ensures reproducible operation without manual restart.  

@@ -1,4 +1,4 @@
-title: mozos — phase_0012: double sha‑256 routine (block header hashing)  
+title: moz-os — phase_0012: double sha‑256 routine (block header hashing)  
 
 intent  
 extend the kernel’s cryptographic capability by chaining two sha‑256 compressions to produce a double sha‑256 hash, as required for bitcoin block header validation. this phase ensures the kernel can process an 80‑byte header, pad it correctly, run two sequential hashes, and produce deterministic output. no mining loop yet.  
@@ -60,14 +60,14 @@ completion criteria
 - kernel/kernel.c compiles into kernel/kernel.img without errors.  
 - boot/stage2.asm and boot/mbr.asm assemble without errors.  
 - boot image runs in qemu:  
-  - prints “mbr: mozos boot entry”  
+  - prints “mbr: moz-os boot entry”  
   - prints “stage2: a20 line enabled”  
   - prints “stage2: gdt loaded”  
   - prints “stage2: entered protected mode”  
   - prints “stage2: paging structures initialized”  
   - prints “stage2: entered long mode”  
   - prints “stage2: kernel loaded at 0x00100000”  
-  - prints “kernel: mozos skeleton entry”  
+  - prints “kernel: moz-os skeleton entry”  
   - prints “kernel: sha‑256 compression validated”  
   - prints “kernel: double sha‑256 validated”  
   - halts deterministically.  
