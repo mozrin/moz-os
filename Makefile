@@ -19,7 +19,8 @@ stage2:
 # Compile Kernel
 kernel_bin:
 	gcc -c kernel/kernel.c -o kernel/kernel.o -ffreestanding -mno-red-zone
-	ld -n -T kernel/linker.ld -o kernel/kernel.bin kernel/kernel.o --oformat binary
+	gcc -c kernel/net.c -o kernel/net.o -ffreestanding -mno-red-zone
+	ld -n -T kernel/linker.ld -o kernel/kernel.bin kernel/kernel.o kernel/net.o --oformat binary
 
 # Create Disk Image
 # MBR at 0

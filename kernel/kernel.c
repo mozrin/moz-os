@@ -3,6 +3,7 @@
 */
 
 #include <stdint.h>
+#include "net.h"
 
 /* volatile to prevent compiler optimization */
 volatile char* video_memory = (volatile char*) 0xb8000;
@@ -338,6 +339,9 @@ void kmain() {
     uart_init();
     print_string("kernel: uart initialized", 13);
     uart_puts("uart: hello from moz-os\n");
+
+    /* Initialize Networking Stack */
+    net_init();
 
     while (1) {
         /* Wait for payload */
