@@ -137,7 +137,62 @@ init_pm:
     call print_string_pm
 
     ; -------------------------------------------------------------------------
-    ; 6. halt
+    ; 6. setup identity paging (first 1gb)
+    ; -------------------------------------------------------------------------
+    ; we will use:
+    ; pml4 at 0x1000
+    ; pdpt at 0x2000
+    ; pd   at 0x3000
+    ; assume memory is usable there.
+
+    ; clear paging area (0x1000 - 0x4000) - 3 pages (12kb) = 3072 dwords
+    mov edi, 0x1000
+    xor eax, eax
+    mov ecx, 3072
+    rep stosd
+
+    ; setup pml4 at 0x1000
+    ; entry 0 -> pdpt at 0x2000 | present (1) | rw (2) = 0x2003
+    mov edi, 0x1000
+    mov eax, 0x2003
+    stosd
+
+    ; setup pdpt at 0x2000
+    ; entry 0 -> pd at 0x3000 | present (1) | rw (2) = 0x3003
+    mov edi, 0x2000
+    mov eax, 0x3003
+    stosd
+
+    ; setup pd at 0x3000
+    ; map 512 entries (1gb) as 2mb huge pages
+    mov edi, 0x3000
+    mov eax, 0x83       ; present (1) | rw (2) | huge (0x80)
+    mov ecx, 512
+
+.fill_pd:
+    stosd               ; store low 32 bits (address + flags)
+    push eax
+    mov eax, 0          ; high 32 bits (0 for now, < 4gb)
+    stosd
+    pop eax
+    add eax, 0x200000   ; increment by 2mb
+    loop .fill_pd
+
+    ; -------------------------------------------------------------------------
+    ; 7. load cr3
+    ; -------------------------------------------------------------------------
+    mov eax, 0x1000
+    mov cr3, eax
+
+    ; -------------------------------------------------------------------------
+    ; 8. print banner (paging)
+    ; -------------------------------------------------------------------------
+    mov esi, banner_paging
+    mov edi, 0xb8000 + 160 * 4 ; line 4 (approx)
+    call print_string_pm
+
+    ; -------------------------------------------------------------------------
+    ; 9. halt
     ; -------------------------------------------------------------------------
 pm_halt:
     hlt
@@ -166,3 +221,4 @@ print_string_pm:
     ret
 
 banner_pm db 'stage2: entered protected mode', 0
+banner_paging db 'stage2: paging structures initialized', 0
