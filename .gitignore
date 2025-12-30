@@ -1,0 +1,18 @@
+# Object files
+*.o
+
+# Compiled Binaries
+boot/*.bin
+kernel/*.bin
+
+# Disk Images
+*.img
+
+# Logs and temporary outputs
+*.log
+qemu_output.txt
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
