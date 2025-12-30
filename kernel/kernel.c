@@ -4,6 +4,7 @@
 
 #include <stdint.h>
 #include "net.h"
+#include "stratum.h"
 
 /* volatile to prevent compiler optimization */
 volatile char* video_memory = (volatile char*) 0xb8000;
@@ -342,6 +343,10 @@ void kmain() {
 
     /* Initialize Networking Stack */
     net_init();
+
+    /* Initialize Stratum Skeleton */
+    stratum_init();
+    print_string("kernel: stratum skeleton active", 20);
 
     while (1) {
         /* Wait for payload */
