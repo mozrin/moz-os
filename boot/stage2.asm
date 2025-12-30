@@ -26,13 +26,24 @@ start:
     out 0x92, al
 
     ; -------------------------------------------------------------------------
-    ; 3. print banner
+    ; 3. load gdt
+    ; -------------------------------------------------------------------------
+    lgdt [gdt_descriptor]
+
+    ; -------------------------------------------------------------------------
+    ; 4. print banner (a20)
     ; -------------------------------------------------------------------------
     mov si, banner_msg
     call print_string
 
     ; -------------------------------------------------------------------------
-    ; 4. halt
+    ; 5. print banner (gdt)
+    ; -------------------------------------------------------------------------
+    mov si, banner_gdt
+    call print_string
+
+    ; -------------------------------------------------------------------------
+    ; 6. halt
     ; -------------------------------------------------------------------------
 halt_loop:
     hlt
@@ -61,3 +72,36 @@ print_string:
 ; data
 ; =============================================================================
 banner_msg db 'stage2: a20 line enabled', 13, 10, 0
+banner_gdt db 'stage2: gdt loaded', 13, 10, 0
+
+; =============================================================================
+; gdt
+; =============================================================================
+align 4
+gdt_start:
+    ; null descriptor
+    dq 0x0000000000000000
+
+    ; code descriptor: base=0, limit=0xfffff, access=0x9a, flags=0xc
+    ; limit(0-15)=0xffff, base(0-15)=0x0000
+    ; base(16-23)=0x00, access=0x9a, limit(16-19)=0xf, flags=0xc(0xc0 implied?), base(24-31)=0x00
+    ; dw 0xffff, 0x0000, 0x9a00, 0x00cf ; flat mode 4gb
+    ; prompt says flags=0x9a for access. limit=0xfffff. 
+    ; let's adhere to typical 32-bit protected mode flat descriptors.
+    ; access 0x9a: pr=1, priv=00, s=1, ex=1, dc=0, rw=1, ac=0
+    ; flags 0xc: gr=1 (4k), sz=1 (32-bit). 
+    ; so low dword: 0x0000ffff (base low, limit low)
+    ; high dword: 0x00cf9a00 (base high, access, limit high/flags, base mid) -> wait, little endian
+    ; db 0xff, 0xff, 0x00, 0x00, 0x00, 0x9a, 0xcf, 0x00
+    db 0xff, 0xff, 0x00, 0x00, 0x00, 0x9a, 0xcf, 0x00
+
+    ; data descriptor: base=0, limit=0xfffff, access=0x92, flags=0xc
+    ; access 0x92: pr=1, priv=00, s=1, ex=0, dc=0, rw=1, ac=0
+    ; db 0xff, 0xff, 0x00, 0x00, 0x00, 0x92, 0xcf, 0x00
+    db 0xff, 0xff, 0x00, 0x00, 0x00, 0x92, 0xcf, 0x00
+
+gdt_end:
+
+gdt_descriptor:
+    dw gdt_end - gdt_start - 1  ; limit (size - 1)
+    dd gdt_start                ; base address
