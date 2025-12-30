@@ -432,7 +432,7 @@ void kmain() {
             nonce++;
         }
         
-        print_string("kernel: work loop cycle complete", 17);
+        print_string("kernel: integrated control loop complete", 17);
     }
     
     /* Halt */
