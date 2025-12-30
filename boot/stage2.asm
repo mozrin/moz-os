@@ -21,35 +21,44 @@ start:
     ; -------------------------------------------------------------------------
     ; 2. enable a20 (fast a20 - port 0x92)
     ; -------------------------------------------------------------------------
-    in al, 0x92
-    or al, 2
-    out 0x92, al
+    ; BIOS A20 Enable
+    mov ax, 0x2401
+    int 0x15
 
     ; -------------------------------------------------------------------------
     ; 2.5 load kernel (real mode)
     ; -------------------------------------------------------------------------
-    ; read 64 sectors from lba 8 to 0x100000
-    ; use int 0x13 ah=0x42 (extended read)
-    ; buffer: segment=0xffff, offset=0x0010 (linear 0x100000)
-    
-    ; Note: DL (boot drive) is preserved from MBR. To be safe, we use it directly.
-    ; Ideally we should have saved it, but we haven't clobbered it yet.
-    
+    ; read 16 sectors from lba 8 to 0x100000
+    ; loop to avoid multi-sector quirks
+    mov cx, 16
+.read_loop:
+    push cx             ; save loop counter
+
     mov si, kernel_dap
     mov ah, 0x42
-    ; dl is already boot drive hopefully
+    mov dl, 0x80        ; restore boot drive
     int 0x13
     jc .disk_error
 
+    ; update DAP for next sector
+    mov bx, [kernel_dap+6] ; offset
+    add bx, 512
+    mov [kernel_dap+6], bx
+
+    ; update LBA (lower 32 bits is enough for now)
+    mov eax, [kernel_dap+8]
+    inc eax
+    mov [kernel_dap+8], eax
+
+    pop cx
+    loop .read_loop
+
     jmp .disk_ok
 .disk_error:
-    ; if error, halt or print? just halt for now for determinism (or we could print error)
     cli
     hlt
 .disk_ok:
 
-
-    
     ; -------------------------------------------------------------------------
     ; 3. load gdt
     ; -------------------------------------------------------------------------
@@ -69,7 +78,6 @@ start:
 
     ; -------------------------------------------------------------------------
     ; 6. setup identity paging (first 1gb)
-    ; -------------------------------------------------------------------------
     ; ... (rest of code) ... need to be careful with replace chunks
     ; Wait, I'm replacing a huge block.
     ; I should target specific blocks.
@@ -87,6 +95,7 @@ start:
     ; -------------------------------------------------------------------------
     ; 6. halt (removed, fallthrough to pm)
     ; -------------------------------------------------------------------------
+    jmp enter_pm
 
 ; =============================================================================
 ; routine: print_string
@@ -142,7 +151,6 @@ gdt_start:
     ; code descriptor 64-bit: base=0, limit=0, access=0x9a, flags=0xa (long mode)
     ; access: 0x9a (present, ring0, code, exec/read)
     ; flags: 0xa (long mode=1, db=0) -> 0xaf (long mode, present? no, flags upper nibble)
-    ; upper byte of high dword: 0xaf
     ; actually, limit is ignored in 64-bit mode.
     ; let's use:
     ; dw 0xffff, 0x0000, 0x9a00, 0x00af
@@ -157,9 +165,13 @@ gdt_descriptor:
 ; =============================================================================
 ; 4. protected mode entry
 ; =============================================================================
-CODE_SEG equ gdt_start + 8
-DATA_SEG equ gdt_start + 16
+; =============================================================================
+; 4. protected mode entry
+; =============================================================================
+CODE_SEG equ 0x08
+DATA_SEG equ 0x10
 
+enter_pm:
     cli
     mov eax, cr0
     or eax, 1
@@ -179,6 +191,14 @@ init_pm:
     mov gs, ax
     mov ss, ax
     mov esp, 0x90000        ; move stack to safe place
+
+    ; -------------------------------------------------------------------------
+    ; Copy Kernel from 0x20000 to 0x100000
+    ; -------------------------------------------------------------------------
+    mov esi, 0x20000
+    mov edi, 0x100000
+    mov ecx, 2048       ; 8KB / 4 = 2048 dwords
+    rep movsd
 
     ; -------------------------------------------------------------------------
     ; 5. print banner (pm) using vga
@@ -354,7 +374,7 @@ align 4
 kernel_dap:
     db 0x10         ; size
     db 0            ; constant
-    dw 64           ; count
-    dw 0x0010       ; offset
-    dw 0xffff       ; segment
+    dw 1            ; count (single sector per loop iteration)
+    dw 0x0000       ; offset
+    dw 0x2000       ; segment (load to 0x20000)
     dq 8            ; lba

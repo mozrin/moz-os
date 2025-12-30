@@ -278,7 +278,6 @@ void uart_read_block(uint8_t* buf, int len) {
     }
 }
 
-void kmain() {
     /* Print banner at line 7 */
     print_string("kernel: moz-os skeleton entry", 7);
     
@@ -336,11 +335,6 @@ void kmain() {
     /* Deterministic Work Loop (Continuous Ingestion + Mining)               */
     /* --------------------------------------------------------------------- */
     
-    /* Initialize UART */
-    uart_init();
-    print_string("kernel: uart initialized", 13);
-    uart_puts("uart: hello from moz-os\n");
-
     /* Initialize Networking Stack */
     net_init();
 

@@ -81,7 +81,7 @@ align 16
 disk_packet:
     db 0x10             ; size of packet
     db 0                ; always 0
-    dw 1                ; number of sectors to transfer
+    dw 4                ; number of sectors to transfer
     dw 0x8000           ; transfer buffer (offset)
     dw 0x0000           ; transfer buffer (segment)
     dq 2                ; starting lba (0-based) 
