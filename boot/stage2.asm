@@ -43,11 +43,8 @@ start:
     call print_string
 
     ; -------------------------------------------------------------------------
-    ; 6. halt
+    ; 6. halt (removed, fallthrough to pm)
     ; -------------------------------------------------------------------------
-halt_loop:
-    hlt
-    jmp halt_loop
 
 ; =============================================================================
 ; routine: print_string
@@ -105,3 +102,67 @@ gdt_end:
 gdt_descriptor:
     dw gdt_end - gdt_start - 1  ; limit (size - 1)
     dd gdt_start                ; base address
+
+; =============================================================================
+; 4. protected mode entry
+; =============================================================================
+CODE_SEG equ gdt_start + 8
+DATA_SEG equ gdt_start + 16
+
+    cli
+    mov eax, cr0
+    or eax, 1
+    mov cr0, eax
+
+    jmp CODE_SEG:init_pm
+
+; =============================================================================
+; 32-bit protected mode
+; =============================================================================
+use32
+init_pm:
+    mov ax, DATA_SEG
+    mov ds, ax
+    mov es, ax
+    mov fs, ax
+    mov gs, ax
+    mov ss, ax
+    mov esp, 0x90000        ; move stack to safe place
+
+    ; -------------------------------------------------------------------------
+    ; 5. print banner (pm) using vga
+    ; -------------------------------------------------------------------------
+    mov esi, banner_pm
+    mov edi, 0xb8000 + 160 * 3 ; line 3 (approx)
+    call print_string_pm
+
+    ; -------------------------------------------------------------------------
+    ; 6. halt
+    ; -------------------------------------------------------------------------
+pm_halt:
+    hlt
+    jmp pm_halt
+
+; =============================================================================
+; routine: print_string_pm
+; input: esi = pointer to string
+; input: edi = vga buffer address
+; =============================================================================
+print_string_pm:
+    push eax
+    push edi
+    push esi
+.next_char:
+    lodsb
+    test al, al
+    jz .done
+    mov ah, 0x0f    ; white on black
+    stosw
+    jmp .next_char
+.done:
+    pop esi
+    pop edi
+    pop eax
+    ret
+
+banner_pm db 'stage2: entered protected mode', 0
