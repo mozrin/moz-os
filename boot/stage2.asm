@@ -26,6 +26,31 @@ start:
     out 0x92, al
 
     ; -------------------------------------------------------------------------
+    ; 2.5 load kernel (real mode)
+    ; -------------------------------------------------------------------------
+    ; read 64 sectors from lba 8 to 0x100000
+    ; use int 0x13 ah=0x42 (extended read)
+    ; buffer: segment=0xffff, offset=0x0010 (linear 0x100000)
+    
+    ; Note: DL (boot drive) is preserved from MBR. To be safe, we use it directly.
+    ; Ideally we should have saved it, but we haven't clobbered it yet.
+    
+    mov si, kernel_dap
+    mov ah, 0x42
+    ; dl is already boot drive hopefully
+    int 0x13
+    jc .disk_error
+
+    jmp .disk_ok
+.disk_error:
+    ; if error, halt or print? just halt for now for determinism (or we could print error)
+    cli
+    hlt
+.disk_ok:
+
+
+    
+    ; -------------------------------------------------------------------------
     ; 3. load gdt
     ; -------------------------------------------------------------------------
     lgdt [gdt_descriptor]
@@ -41,6 +66,23 @@ start:
     ; -------------------------------------------------------------------------
     mov si, banner_gdt
     call print_string
+
+    ; -------------------------------------------------------------------------
+    ; 6. setup identity paging (first 1gb)
+    ; -------------------------------------------------------------------------
+    ; ... (rest of code) ... need to be careful with replace chunks
+    ; Wait, I'm replacing a huge block.
+    ; I should target specific blocks.
+
+    ; Let's re-read the plan. I need to:
+    ; 1. Insert disk read after A20.
+    ; 2. Insert banner print in Long Mode.
+    ; 3. Add data definitions.
+    
+    ; I will use multiple chunks.
+    
+; ... (end of replace content) ...
+
 
     ; -------------------------------------------------------------------------
     ; 6. halt (removed, fallthrough to pm)
@@ -262,6 +304,13 @@ long_mode_entry:
     call print_string_lm
 
     ; -------------------------------------------------------------------------
+    ; 15. print banner (kernel loaded)
+    ; -------------------------------------------------------------------------
+    mov rsi, banner_kernel
+    mov rdi, 0xb8000 + 160 * 6 ; line 6
+    call print_string_lm
+
+    ; -------------------------------------------------------------------------
     ; 14. halt
     ; -------------------------------------------------------------------------
 lm_halt:
@@ -293,3 +342,13 @@ print_string_lm:
 banner_pm db 'stage2: entered protected mode', 0
 banner_paging db 'stage2: paging structures initialized', 0
 banner_lm db 'stage2: entered long mode', 0
+banner_kernel db 'stage2: kernel loaded at 0x00100000', 0
+
+align 4
+kernel_dap:
+    db 0x10         ; size
+    db 0            ; constant
+    dw 64           ; count
+    dw 0x0010       ; offset
+    dw 0xffff       ; segment
+    dq 8            ; lba
