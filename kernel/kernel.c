@@ -243,6 +243,19 @@ void uart_puts(const char* s) {
     }
 }
 
+uint8_t uart_getc() {
+    /* Wait for Data Ready (LSR bit 0) */
+    while ((inb(PORT_COM1 + 5) & 0x01) == 0);
+    return inb(PORT_COM1);
+}
+
+void uart_read_block(uint8_t* buf, int len) {
+    int i;
+    for (i = 0; i < len; i++) {
+        buf[i] = uart_getc();
+    }
+}
+
 void kmain() {
     /* Print banner at line 7 */
     print_string("kernel: moz-os skeleton entry", 7);
@@ -299,7 +312,7 @@ void kmain() {
     }
     
     /* --------------------------------------------------------------------- */
-    /* Mining Loop (Full Target Check) with Midstate Optimization */
+    /* UART Input & Mining Loop (Full Target Check) with Midstate Optimization */
     /* --------------------------------------------------------------------- */
     
     /* Initialize UART */
@@ -307,7 +320,15 @@ void kmain() {
     print_string("kernel: uart initialized", 13);
     uart_puts("uart: hello from moz-os\n");
     
-    print_string("kernel: midstate optimization active", 11);
+    /* Wait for payload */
+    print_string("kernel: waiting for block header...", 14);
+    uart_puts("uart: waiting for 80-byte header\n");
+    
+    uint8_t received_header[80];
+    uart_read_block(received_header, 80);
+    print_string("kernel: block header received via uart", 15);
+    
+    print_string("kernel: midstate optimization active", 11); /* Line 11 reuse or overwrite */
 
     /* Define Target */
     /* Based on Genesis Hash: Bytes 26=0x19, 27..31=0x00 */
@@ -329,18 +350,18 @@ void kmain() {
         0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19
     };
     uint8_t block1[64];
-    for(i=0; i<64; i++) block1[i] = genesis_header[i];
+    for(i=0; i<64; i++) block1[i] = received_header[i]; /* Use received header */
     sha256_transform(midstate, block1);
     
     /* 2. Prepare Tail Block (Bytes 64-79 + Padding) */
     uint8_t tail_block[64];
     for(i=0; i<64; i++) tail_block[i] = 0;
-    for(i=0; i<16; i++) tail_block[i] = genesis_header[64+i];
+    for(i=0; i<16; i++) tail_block[i] = received_header[64+i]; /* Use received header */
     tail_block[16] = 0x80;
     tail_block[62] = 0x02;
     tail_block[63] = 0x80;
     
-    /* We reuse genesis_header structure for reference, but update tail_block directly */
+    /* We reuse header structure for reference, but update tail_block directly */
     uint32_t nonce = 0;
     uint32_t H[8];
     uint8_t hash1[32];
