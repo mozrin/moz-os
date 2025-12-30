@@ -1,4 +1,4 @@
-title: mining-os — phase_0025: stratum share submission (nonce + hash back to pool)  
+title: mozos — phase_0025: stratum share submission (nonce + hash back to pool)  
 
 **intent**  
 Complete the Stratum protocol loop by transmitting valid solutions back to the pool. This phase formats the discovered nonce and hash into a Stratum submit message, sends it over the network stack, and confirms submission. This marks the end of the “core” roadmap for testing.  

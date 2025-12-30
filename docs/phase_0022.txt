@@ -1,4 +1,4 @@
-title: mining-os — phase_0022: networking stack initialization (basic tcp/ip over uart or nic)  
+title: mozos — phase_0022: networking stack initialization (basic tcp/ip over uart or nic)  
 
 intent  
 extend mining‑os beyond standalone uart operation by introducing a minimal networking stack. this phase sets up deterministic packet handling for basic tcp/ip communication. the kernel can now exchange data with external systems over a network interface (either via uart‑tunneled tcp or a simple nic driver).  

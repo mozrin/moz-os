@@ -1,4 +1,4 @@
-title: mining-os — phase_0001: minimal mbr boot sector (fasm) + bios banner
+title: mozos — phase_0001: minimal mbr boot sector (fasm) + bios banner
 
 intent  
 introduce the first, deterministic boot artifact: a 512‑byte mbr boot sector assembled with fasm that reliably hands control to the bios teletype and confirms boot entry with a banner. no disk i/o yet. no mode switches. this cements the foundational entry point for subsequent stages.
@@ -35,7 +35,7 @@ section 2 — implement minimal mbr (fasm)
    - 16‑bit real mode setup at 0x7c00  
    - segment register initialization  
    - a tiny teletype routine (int 0x10, ah=0x0e)  
-   - a static banner string (e.g., “mbr: mining-os boot entry”)  
+   - a static banner string (e.g., “mbr: mozos boot entry”)  
    - proper signature 0xaa55 at bytes 510–511  
 
 2. keep total size ≤ 512 bytes. no disk reads, no jumps to other segments beyond simple flow control.  
@@ -76,7 +76,7 @@ completion criteria
 
 - boot/mbr.asm assembles to boot/mbr.bin without errors or warnings.  
 - boot/mbr.bin is exactly 512 bytes and ends with 0xaa55.  
-- the code at 0x7c00 prints “mbr: mining-os boot entry” deterministically when executed.  
+- the code at 0x7c00 prints “mbr: mozos boot entry” deterministically when executed.  
 - workspace compiles unchanged aside from the new mbr and makefile stub.  
 - all lint warnings and errors are resolved.  
 

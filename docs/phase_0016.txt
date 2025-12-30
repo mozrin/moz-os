@@ -1,4 +1,4 @@
-title: mining-os — phase_0016: uart driver initialization (serial tx/rx)  
+title: mozos — phase_0016: uart driver initialization (serial tx/rx)  
 
 intent  
 introduce deterministic serial communication by implementing a uart driver in the kernel. this phase sets up the standard pc serial port (com1, i/o base 0x3f8), configures baud rate, parity, and stop bits, and provides routines for transmit (tx) and receive (rx). no payload ingestion yet. no share submission.  
@@ -34,7 +34,7 @@ section 2 — implement uart driver
    - define `uart_puts(const char* s)` to send a string.  
    - define `uart_getc()` to read a character when available.  
 
-2. after initialization, print banner to vga (“kernel: uart initialized”) and send string over uart (“uart: hello from mining-os”).  
+2. after initialization, print banner to vga (“kernel: uart initialized”) and send string over uart (“uart: hello from mozos”).  
 
 ============================================================  
 section 3 — deterministic boot behavior  
@@ -61,20 +61,20 @@ completion criteria
 - kernel/kernel.c compiles into kernel/kernel.img without errors.  
 - boot/stage2.asm and boot/mbr.asm assemble without errors.  
 - boot image runs in qemu with `-serial stdio`:  
-  - prints “mbr: mining-os boot entry”  
+  - prints “mbr: mozos boot entry”  
   - prints “stage2: a20 line enabled”  
   - prints “stage2: gdt loaded”  
   - prints “stage2: entered protected mode”  
   - prints “stage2: paging structures initialized”  
   - prints “stage2: entered long mode”  
   - prints “stage2: kernel loaded at 0x00100000”  
-  - prints “kernel: mining-os skeleton entry”  
+  - prints “kernel: mozos skeleton entry”  
   - prints “kernel: sha‑256 compression validated”  
   - prints “kernel: double sha‑256 validated”  
   - prints “kernel: midstate optimization active”  
   - prints “kernel: valid solution meets target”  
   - prints “kernel: uart initialized” on vga  
-  - outputs “uart: hello from mining-os” on serial  
+  - outputs “uart: hello from mozos” on serial  
   - halts deterministically.  
 - all lint warnings and errors resolved.  
 

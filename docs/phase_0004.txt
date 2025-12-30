@@ -1,4 +1,4 @@
-title: mining-os — phase_0004: a20 line enable + verification  
+title: mozos — phase_0004: a20 line enable + verification  
 
 intent  
 introduce deterministic memory access beyond 1mb by enabling the a20 line. this phase ensures the cpu can address memory above 0xFFFFF, which is required for protected mode and long mode transitions later. the loader will enable a20 and print a confirmation banner. no gdt yet. no paging. no kernel load. no mining logic.  
@@ -57,7 +57,7 @@ completion criteria
 - boot/stage2.asm assembles to boot/stage2.bin without errors.  
 - boot/mbr.asm assembles to boot/mbr.bin without errors.  
 - boot image runs in qemu:  
-  - prints “mbr: mining-os boot entry”  
+  - prints “mbr: mozos boot entry”  
   - prints “stage2: a20 line enabled”  
   - halts deterministically.  
 - all lint warnings and errors resolved.  

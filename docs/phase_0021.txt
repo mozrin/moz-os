@@ -1,4 +1,4 @@
-title: mining-os — phase_0021: integrated control loop (dynamic header + target ingestion, mining, share submission)  
+title: mozos — phase_0021: integrated control loop (dynamic header + target ingestion, mining, share submission)  
 
 intent  
 consolidate all prior functionality into a single, deterministic control loop. this phase ties together uart payload ingestion (block header + target), mining loop with midstate optimization, full 256‑bit target comparison, and uart share submission. the kernel now continuously cycles through external work units, mines, and reports solutions.  

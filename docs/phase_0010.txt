@@ -1,4 +1,4 @@
-title: mining-os — phase_0010: kernel skeleton + vga text output  
+title: mozos — phase_0010: kernel skeleton + vga text output  
 
 intent  
 introduce deterministic kernel execution by jumping from stage‑2 into kernel.img at 0x00100000. this phase defines a minimal kernel skeleton with a linker script, a `kmain` entry point, and vga text output for debug. no hashing yet. no mining logic.  
@@ -29,7 +29,7 @@ section 2 — implement kernel skeleton
 1. in kernel/kernel.c:  
    - define `kmain(void)` as entry.  
    - implement vga text output routine writing to 0xb8000.  
-   - print banner (“kernel: mining-os skeleton entry”).  
+   - print banner (“kernel: mozos skeleton entry”).  
    - halt in place (infinite loop).  
 
 2. in kernel/link.ld:  
@@ -62,14 +62,14 @@ completion criteria
 - boot/stage2.asm assembles to boot/stage2.bin without errors.  
 - boot/mbr.asm assembles to boot/mbr.bin without errors.  
 - boot image runs in qemu:  
-  - prints “mbr: mining-os boot entry”  
+  - prints “mbr: mozos boot entry”  
   - prints “stage2: a20 line enabled”  
   - prints “stage2: gdt loaded”  
   - prints “stage2: entered protected mode”  
   - prints “stage2: paging structures initialized”  
   - prints “stage2: entered long mode”  
   - prints “stage2: kernel loaded at 0x00100000”  
-  - prints “kernel: mining-os skeleton entry”  
+  - prints “kernel: mozos skeleton entry”  
   - halts deterministically.  
 - all lint warnings and errors resolved.  
 

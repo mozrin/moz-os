@@ -1,4 +1,4 @@
-title: mining-os — phase_0002: bios disk read routine (lba) + stage‑2 loader handoff
+title: mozos — phase_0002: bios disk read routine (lba) + stage‑2 loader handoff
 
 intent  
 introduce deterministic disk i/o into the boot path. this phase adds a bios disk read routine using int 0x13 extensions (lba) to load a small stage‑2 loader into memory. the mbr boot sector will now perform a controlled handoff to stage‑2. no mode switches yet. no kernel load. no mining logic.
@@ -68,7 +68,7 @@ completion criteria
 - boot/mbr.asm assembles to boot/mbr.bin without errors.  
 - boot/stage2.asm assembles to boot/stage2.bin without errors.  
 - boot image runs in qemu:  
-  - prints “mbr: mining-os boot entry”  
+  - prints “mbr: mozos boot entry”  
   - prints “stage2: loader entry”  
   - halts deterministically.  
 - all lint warnings and errors resolved.  

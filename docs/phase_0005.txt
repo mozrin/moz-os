@@ -1,4 +1,4 @@
-title: mining-os — phase_0005: gdt setup + descriptor initialization  
+title: mozos — phase_0005: gdt setup + descriptor initialization  
 
 intent  
 introduce deterministic segmentation control by defining and loading a global descriptor table (gdt). this phase ensures the stage‑2 loader has valid code and data segments in preparation for protected mode entry. no mode switch yet. no paging. no kernel load. no mining logic.  
@@ -62,7 +62,7 @@ completion criteria
 - boot/stage2.asm assembles to boot/stage2.bin without errors.  
 - boot/mbr.asm assembles to boot/mbr.bin without errors.  
 - boot image runs in qemu:  
-  - prints “mbr: mining-os boot entry”  
+  - prints “mbr: mozos boot entry”  
   - prints “stage2: a20 line enabled”  
   - prints “stage2: gdt loaded”  
   - halts deterministically.  

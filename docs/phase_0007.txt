@@ -1,4 +1,4 @@
-title: mining-os — phase_0007: paging structures (pml4/pdpt/pd) + identity map  
+title: mozos — phase_0007: paging structures (pml4/pdpt/pd) + identity map  
 
 intent  
 introduce deterministic paging structures to prepare for long mode. this phase builds minimal page tables (pml4, pdpt, pd) that identity map the first 1 giB of memory. the loader will set cr3 to the pml4 base, print a confirmation banner, and halt. no long mode yet. no kernel load. no mining logic.  
@@ -59,7 +59,7 @@ completion criteria
 - boot/stage2.asm assembles to boot/stage2.bin without errors.  
 - boot/mbr.asm assembles to boot/mbr.bin without errors.  
 - boot image runs in qemu:  
-  - prints “mbr: mining-os boot entry”  
+  - prints “mbr: mozos boot entry”  
   - prints “stage2: a20 line enabled”  
   - prints “stage2: gdt loaded”  
   - prints “stage2: entered protected mode”  

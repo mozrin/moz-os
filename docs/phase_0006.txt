@@ -1,4 +1,4 @@
-title: mining-os — phase_0006: protected mode entry + segment initialization  
+title: mozos — phase_0006: protected mode entry + segment initialization  
 
 intent  
 introduce deterministic transition from real mode into 32‑bit protected mode. this phase ensures the cpu executes with flat segmentation using the gdt defined earlier. the loader will set cr0, perform a far jump into protected mode, reload segment registers, and print a confirmation banner. no paging yet. no long mode. no kernel load. no mining logic.  
@@ -59,7 +59,7 @@ completion criteria
 - boot/stage2.asm assembles to boot/stage2.bin without errors.  
 - boot/mbr.asm assembles to boot/mbr.bin without errors.  
 - boot image runs in qemu:  
-  - prints “mbr: mining-os boot entry”  
+  - prints “mbr: mozos boot entry”  
   - prints “stage2: a20 line enabled”  
   - prints “stage2: gdt loaded”  
   - prints “stage2: entered protected mode”  

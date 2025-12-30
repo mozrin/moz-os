@@ -1,4 +1,4 @@
-title: mining-os — phase_0008: long mode transition + 64‑bit entry  
+title: mozos — phase_0008: long mode transition + 64‑bit entry  
 
 intent  
 introduce deterministic transition from 32‑bit protected mode into 64‑bit long mode. this phase enables pae, sets efer.lme, activates paging, and performs a far jump into 64‑bit code. the loader will confirm entry into long mode with a banner. no kernel load yet. no mining logic.  
@@ -58,7 +58,7 @@ completion criteria
 - boot/stage2.asm assembles to boot/stage2.bin without errors.  
 - boot/mbr.asm assembles to boot/mbr.bin without errors.  
 - boot image runs in qemu:  
-  - prints “mbr: mining-os boot entry”  
+  - prints “mbr: mozos boot entry”  
   - prints “stage2: a20 line enabled”  
   - prints “stage2: gdt loaded”  
   - prints “stage2: entered protected mode”  
