@@ -1,0 +1,95 @@
+# testing-0001.txt
+
+============================================================
+Testing Process for mining-os (Milestone: Phase_0025)
+============================================================
+
+Purpose:
+Provide a reproducible, safe procedure to test mining-os up through phase_0025 inside QEMU without risk to the host system.
+
+------------------------------------------------------------
+1. Build Environment
+------------------------------------------------------------
+- Ensure you are working inside your local repo (moz-os).
+- Compile bootloader and kernel sources into a bootable image:
+  - mbr.asm → mbr.bin
+  - stage2.asm → stage2.bin
+  - kernel sources → kernel.img
+- Link them into a single disk image (e.g., mining-os.img).
+
+------------------------------------------------------------
+2. Safe QEMU Launch
+------------------------------------------------------------
+Always run QEMU against the image file, never a physical device.
+
+Example command:
+```
+qemu-system-x86_64 -drive format=raw,file=mining-os.img \
+                   -serial stdio \
+                   -m 512M
+```
+
+Flags explained:
+- `-drive format=raw,file=mining-os.img` → boots from your compiled image file.
+- `-serial stdio` → routes UART output to your terminal for banner visibility.
+- `-m 512M` → allocates 512 MB RAM for the VM.
+
+This setup guarantees no writes to your real hard drive.
+
+------------------------------------------------------------
+3. Expected Output Sequence
+------------------------------------------------------------
+During boot and execution, you should see banners in this order:
+
+- SeaBIOS / iPXE (QEMU BIOS)
+- mbr: moz-os boot entry
+- stage2: loader entry
+- stage2: a20 line enabled
+- stage2: gdt loaded
+- stage2: entered protected mode
+- stage2: paging structures initialized
+- stage2: entered long mode
+- stage2: kernel loaded at 0x00100000
+- kernel: mining-os skeleton entry
+- kernel: sha-256 compression validated
+- kernel: double sha-256 validated
+- kernel: midstate optimization active
+- kernel: valid solution meets target
+- kernel: uart initialized
+- kernel: block header received via uart
+- kernel: share submitted via uart
+- kernel: work loop cycle complete
+- kernel: difficulty target received via uart
+- kernel: integrated control loop complete
+- kernel: networking stack initialized
+- kernel: stratum skeleton active
+- kernel: stratum job received
+- kernel: stratum share submitted
+
+------------------------------------------------------------
+4. Runtime Behavior
+------------------------------------------------------------
+- The kernel enters a deterministic loop:
+  1. Ingest job (header + target).
+  2. Mine until solution meets target.
+  3. Submit share via Stratum.
+  4. Print confirmation banners.
+  5. Repeat for next job.
+
+------------------------------------------------------------
+5. Testing Checklist
+------------------------------------------------------------
+- Verify all banners appear in correct order.
+- Confirm UART output is visible in terminal.
+- Confirm networking stack initializes (banner).
+- Inject dummy Stratum job messages to test ingestion.
+- Observe share submission banner after solution.
+- Ensure loop repeats deterministically.
+
+------------------------------------------------------------
+6. Safety Notes
+------------------------------------------------------------
+- All execution occurs inside QEMU VM.
+- "Booting from Hard Disk..." refers to the virtual image file, not your physical drive.
+- No destructive writes occur unless you explicitly attach a real device (do not do this).
+- Safe to run repeatedly for testing.
