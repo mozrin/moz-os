@@ -243,6 +243,26 @@ void uart_puts(const char* s) {
     }
 }
 
+void uart_put_digit(uint8_t d) {
+    if (d < 10) uart_putc('0' + d);
+    else uart_putc('a' + (d - 10));
+}
+
+void uart_put_hex(uint32_t val) {
+    int i;
+    for(i=28; i>=0; i-=4) {
+        uart_put_digit((val >> i) & 0xF);
+    }
+}
+
+void uart_put_hex_bytes(const uint8_t* buf, int len) {
+    int i;
+    for(i=0; i<len; i++) {
+        uart_put_digit((buf[i] >> 4) & 0xF);
+        uart_put_digit(buf[i] & 0xF);
+    }
+}
+
 uint8_t uart_getc() {
     /* Wait for Data Ready (LSR bit 0) */
     while ((inb(PORT_COM1 + 5) & 0x01) == 0);
@@ -406,6 +426,14 @@ void kmain() {
         /* Check Target (Full 256-bit) */
         if (check_target(final_hash, target)) {
             print_string("kernel: valid solution meets target", 12);
+            print_string("kernel: share submitted via uart", 16);
+            
+            uart_puts("share: nonce=");
+            uart_put_hex(nonce);
+            uart_puts(" hash=");
+            uart_put_hex_bytes(final_hash, 32);
+            uart_puts("\n");
+            
             break;
         }
         
