@@ -420,13 +420,9 @@ void kmain() {
             /* Check Target (Full 256-bit) */
             if (check_target(final_hash, target)) {
                 print_string("kernel: valid solution meets target", 12);
-                print_string("kernel: share submitted via uart", 16);
                 
-                uart_puts("share: nonce=");
-                uart_put_hex(nonce);
-                uart_puts(" hash=");
-                uart_put_hex_bytes(final_hash, 32);
-                uart_puts("\n");
+                /* Stratum Share Submission */
+                stratum_submit_share(nonce, final_hash);
                 
                 break;
             }

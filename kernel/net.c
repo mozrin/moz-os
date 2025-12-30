@@ -25,3 +25,11 @@ uint16_t checksum(void* data, int len) {
     
     return (uint16_t)~sum;
 }
+
+
+extern void uart_puts(const char* s);
+
+void net_send(const char* data, int len) {
+    /* For now, just wrap uart_puts, assuming string data */
+    uart_puts(data);
+}

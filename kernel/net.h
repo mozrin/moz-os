@@ -31,6 +31,7 @@ typedef struct {
 } __attribute__((packed)) tcp_header_t;
 
 void net_init();
+void net_send(const char* data, int len);
 uint16_t checksum(void* data, int len);
 
 #endif

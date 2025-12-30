@@ -18,6 +18,7 @@ typedef struct {
 void stratum_init();
 stratum_job_t stratum_ingest();
 void stratum_ingest_job(uint8_t* header, uint8_t* target);
+void stratum_submit_share(uint32_t nonce, const uint8_t* hash);
 int stratum_submit(stratum_share_t share);
 
 #endif
