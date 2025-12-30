@@ -349,19 +349,12 @@ void kmain() {
     print_string("kernel: stratum skeleton active", 20);
 
     while (1) {
-        /* Wait for payload */
-        print_string("kernel: waiting for block header...", 14);
-        uart_puts("uart: waiting for 80-byte header\n");
-        
         uint8_t received_header[80];
-        uart_read_block(received_header, 80);
-        print_string("kernel: block header received via uart", 15);
-        
-        /* Wait for target */
-        uart_puts("uart: waiting for 32-byte target\n");
         uint8_t target[32];
-        uart_read_block(target, 32);
-        print_string("kernel: difficulty target received via uart", 18);
+        
+        /* Ingest Job via Stratum (JSON) */
+        uart_puts("uart: waiting for stratum job\n");
+        stratum_ingest_job(received_header, target);
         
         print_string("kernel: midstate optimization active", 11); /* Line 11 reuse or overwrite */
 
