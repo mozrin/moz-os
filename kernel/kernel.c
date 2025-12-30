@@ -200,6 +200,49 @@ int check_target(const uint8_t hash[32], const uint8_t target[32]) {
     return 1; /* Equal -> Valid */
 }
 
+/* -------------------------------------------------------------------------- */
+/* UART Driver (COM1: 0x3F8)                                                  */
+/* -------------------------------------------------------------------------- */
+
+static inline void outb(uint16_t port, uint8_t val) {
+    __asm__ volatile ( "outb %0, %1" : : "a"(val), "Nd"(port) );
+}
+
+static inline uint8_t inb(uint16_t port) {
+    uint8_t ret;
+    __asm__ volatile ( "inb %1, %0" : "=a"(ret) : "Nd"(port) );
+    return ret;
+}
+
+#define PORT_COM1 0x3f8
+
+void uart_init() {
+    outb(PORT_COM1 + 1, 0x00);    /* Disable all interrupts */
+    outb(PORT_COM1 + 3, 0x80);    /* Enable DLAB (set baud rate divisor) */
+    outb(PORT_COM1 + 0, 0x01);    /* Set divisor to 1 (lo byte) 115200 baud */
+    outb(PORT_COM1 + 1, 0x00);    /*                  (hi byte) */
+    outb(PORT_COM1 + 3, 0x03);    /* 8 bits, no parity, one stop bit */
+    outb(PORT_COM1 + 2, 0xC7);    /* Enable FIFO, clear them, with 14-byte threshold */
+    outb(PORT_COM1 + 4, 0x0B);    /* IRQs enabled, RTS/DSR set */
+}
+
+int uart_is_transmit_empty() {
+    return inb(PORT_COM1 + 5) & 0x20;
+}
+
+void uart_putc(char c) {
+    while (uart_is_transmit_empty() == 0);
+    outb(PORT_COM1, c);
+}
+
+void uart_puts(const char* s) {
+    int i = 0;
+    while(s[i] != 0) {
+        uart_putc(s[i]);
+        i++;
+    }
+}
+
 void kmain() {
     /* Print banner at line 7 */
     print_string("kernel: moz-os skeleton entry", 7);
@@ -258,6 +301,11 @@ void kmain() {
     /* --------------------------------------------------------------------- */
     /* Mining Loop (Full Target Check) with Midstate Optimization */
     /* --------------------------------------------------------------------- */
+    
+    /* Initialize UART */
+    uart_init();
+    print_string("kernel: uart initialized", 13);
+    uart_puts("uart: hello from moz-os\n");
     
     print_string("kernel: midstate optimization active", 11);
 
