@@ -97,6 +97,15 @@ gdt_start:
     ; db 0xff, 0xff, 0x00, 0x00, 0x00, 0x92, 0xcf, 0x00
     db 0xff, 0xff, 0x00, 0x00, 0x00, 0x92, 0xcf, 0x00
 
+    ; code descriptor 64-bit: base=0, limit=0, access=0x9a, flags=0xa (long mode)
+    ; access: 0x9a (present, ring0, code, exec/read)
+    ; flags: 0xa (long mode=1, db=0) -> 0xaf (long mode, present? no, flags upper nibble)
+    ; upper byte of high dword: 0xaf
+    ; actually, limit is ignored in 64-bit mode.
+    ; let's use:
+    ; dw 0xffff, 0x0000, 0x9a00, 0x00af
+    db 0xff, 0xff, 0x00, 0x00, 0x00, 0x9a, 0xaf, 0x00
+
 gdt_end:
 
 gdt_descriptor:
@@ -192,11 +201,31 @@ init_pm:
     call print_string_pm
 
     ; -------------------------------------------------------------------------
-    ; 9. halt
+    ; 9. enable pae
     ; -------------------------------------------------------------------------
-pm_halt:
-    hlt
-    jmp pm_halt
+    mov eax, cr4
+    or eax, 1 shl 5
+    mov cr4, eax
+
+    ; -------------------------------------------------------------------------
+    ; 10. set efer.lme
+    ; -------------------------------------------------------------------------
+    mov ecx, 0xC0000080
+    rdmsr
+    or eax, 1 shl 8
+    wrmsr
+
+    ; -------------------------------------------------------------------------
+    ; 11. enable paging
+    ; -------------------------------------------------------------------------
+    mov eax, cr0
+    or eax, 1 shl 31
+    mov cr0, eax
+
+    ; -------------------------------------------------------------------------
+    ; 12. jump to long mode
+    ; -------------------------------------------------------------------------
+    jmp 0x18:long_mode_entry
 
 ; =============================================================================
 ; routine: print_string_pm
@@ -220,5 +249,47 @@ print_string_pm:
     pop eax
     ret
 
+; =============================================================================
+; 64-bit long mode
+; =============================================================================
+use64
+long_mode_entry:
+    ; -------------------------------------------------------------------------
+    ; 13. print banner (long mode)
+    ; -------------------------------------------------------------------------
+    mov rsi, banner_lm
+    mov rdi, 0xb8000 + 160 * 5 ; line 5
+    call print_string_lm
+
+    ; -------------------------------------------------------------------------
+    ; 14. halt
+    ; -------------------------------------------------------------------------
+lm_halt:
+    hlt
+    jmp lm_halt
+
+; =============================================================================
+; routine: print_string_lm
+; input: rsi = pointer to string
+; input: rdi = vga buffer address
+; =============================================================================
+print_string_lm:
+    push rax
+    push rdi
+    push rsi
+.next_char:
+    lodsb
+    test al, al
+    jz .done
+    mov ah, 0x0f    ; white on black
+    stosw
+    jmp .next_char
+.done:
+    pop rsi
+    pop rdi
+    pop rax
+    ret
+
 banner_pm db 'stage2: entered protected mode', 0
 banner_paging db 'stage2: paging structures initialized', 0
+banner_lm db 'stage2: entered long mode', 0
