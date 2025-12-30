@@ -1,52 +1,62 @@
-; boot/mbr.asm
+; =============================================================================
+; moz-os phase 0001: minimal mbr boot sector
+; =============================================================================
+
+format binary
 use16
-org 0x7C00
+org 0x7c00
 
-xor ax, ax
-mov ds, ax
-mov es, ax
-mov ss, ax
-mov sp, 0x7C00
+start:
+    ; -------------------------------------------------------------------------
+    ; 1. setup segments
+    ; -------------------------------------------------------------------------
+    cli                 ; disable interrupts during setup
+    xor ax, ax
+    mov ds, ax
+    mov es, ax
+    mov ss, ax
+    mov sp, 0x7c00      ; stack grows down from boot sector start
+    sti                 ; re-enable interrupts
 
-mov si, msg
-call puts
+    ; -------------------------------------------------------------------------
+    ; 2. print banner
+    ; -------------------------------------------------------------------------
+    mov si, banner_msg
+    call print_string
 
-; Read stage2 (one sector) from LBA 2 to 0000:8000
-mov bx, 0x8000
-mov dl, [BootDrive]
-mov si, dap
-mov ah, 0x42
-int 0x13
-jc disk_error
+    ; -------------------------------------------------------------------------
+    ; 3. halt
+    ; -------------------------------------------------------------------------
+halt_loop:
+    hlt
+    jmp halt_loop
 
-jmp 0x0000:0x8000
+; =============================================================================
+; routine: print_string
+; input: si = pointer to null-terminated string
+; =============================================================================
+print_string:
+    push ax
+    push si
+.next_char:
+    lodsb               ; load byte from ds:si into al, increment si
+    test al, al         ; internal check for null terminator
+    jz .done
+    mov ah, 0x0e        ; bios teletype function
+    int 0x10
+    jmp .next_char
+.done:
+    pop si
+    pop ax
+    ret
 
-puts:
-lodsb
-test al, al
-jz .done
-mov ah, 0x0E
-int 0x10
-jmp puts
-.done: ret
+; =============================================================================
+; data
+; =============================================================================
+banner_msg db 'mbr: moz-os boot entry', 13, 10, 0
 
-disk_error:
-mov si, err
-call puts
-jmp $
-
-BootDrive db 0
-msg db "MBR: loading stage2...",0
-err db "Disk read error",0
-
-align 16
-dap:
-db 0x10          ; size
-db 0x00
-dw 1             ; sectors
-dw 0x8000        ; buffer offset
-dw 0x0000        ; buffer segment
-dq 2             ; LBA start
-
-times 510-($-$$) db 0
-dw 0xAA55
+; =============================================================================
+; padding & signature
+; =============================================================================
+times 510 - ($ - $$) db 0
+dw 0xaa55
