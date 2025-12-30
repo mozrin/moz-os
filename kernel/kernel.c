@@ -181,6 +181,25 @@ void dsha256(const uint8_t header[80], uint8_t output[32]) {
     }
 }
 
+/*
+ * check_target - Compare hash against target (Little Endian comparison)
+ * Returns 1 if hash <= target, 0 otherwise.
+ * Indices 31 is MSB, 0 is LSB.
+ */
+int check_target(const uint8_t hash[32], const uint8_t target[32]) {
+    int i;
+    for (i = 31; i >= 0; i--) {
+        if (hash[i] < target[i]) {
+            return 1; /* Less than target -> Valid */
+        }
+        if (hash[i] > target[i]) {
+            return 0; /* Greater than target -> Invalid */
+        }
+        /* If equal, continue to next byte */
+    }
+    return 1; /* Equal -> Valid */
+}
+
 void kmain() {
     /* Print banner at line 7 */
     print_string("kernel: moz-os skeleton entry", 7);
@@ -237,10 +256,24 @@ void kmain() {
     }
     
     /* --------------------------------------------------------------------- */
-    /* Mining Loop (Toy Target: Hash[0] == 0x00) with Midstate Optimization */
+    /* Mining Loop (Full Target Check) with Midstate Optimization */
     /* --------------------------------------------------------------------- */
     
     print_string("kernel: midstate optimization active", 11);
+
+    /* Define Target */
+    /* Based on Genesis Hash: Bytes 26=0x19, 27..31=0x00 */
+    /* Set Target slightly higher: Byte 26=0x20, 27..31=0x00, rest 0xFF */
+    uint8_t target[32];
+    for(i=0; i<32; i++) target[i] = 0xff;
+    /* High bytes (LE index 27..31) must be 0 to match genesis difficulty approx */
+    target[31] = 0x00;
+    target[30] = 0x00;
+    target[29] = 0x00;
+    target[28] = 0x00;
+    target[27] = 0x00;
+    /* Byte 26: Genesis is 0x19. Target 0x20 is easier. */
+    target[26] = 0x20;
 
     /* 1. Compute Midstate (SHA-256 state after first 64 bytes) */
     uint32_t midstate[8] = {
@@ -301,9 +334,9 @@ void kmain() {
         /* Serialize Final Hash */
         for (i=0; i<8; i++) write_be32(&final_hash[i*4], H[i]);
         
-        /* Check Target: First byte == 0x00 */
-        if (final_hash[0] == 0x00) {
-            print_string("kernel: toy solution found", 12);
+        /* Check Target (Full 256-bit) */
+        if (check_target(final_hash, target)) {
+            print_string("kernel: valid solution meets target", 12);
             break;
         }
         
