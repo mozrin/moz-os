@@ -1,0 +1,49 @@
+name: Manual Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      type:
+        description: "Release Type"
+        required: true
+        default: "patch"
+        type: choice
+        options:
+          - major
+          - minor
+          - patch
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Bump Version
+        id: bump
+        run: |
+          python3 .github/scripts/release.py --type ${{ inputs.type }}
+          # The script updates VERSION and sets output if GITHUB_OUTPUT is present. 
+          # We need to commit the VERSION change.
+
+      - name: Commit and Tag
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+
+          version=$(cat VERSION)
+
+          git add VERSION
+          git commit -m "chore: release $version"
+          git tag $version
+          git push origin HEAD --tags

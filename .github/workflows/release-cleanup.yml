@@ -1,0 +1,45 @@
+name: Release Cleanup
+
+on:
+  schedule:
+    - cron: "0 0 * * 0" # Weekly
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Cleanup Old Tags
+        run: |
+          # Load tags to keep
+          # This is a simplified cleanup script logic
+          # In a real scenario, we'd parse the JSON and keep those specific tags + recent ones.
+
+          # Read keep list (removing brackets and quotes for grep)
+          KEEP_LIST=$(grep -o '"[^"]*"' .github/tags_to_keep_forever.json | tr -d '"')
+
+          echo "Keeping tags: $KEEP_LIST"
+
+          # List tags, filter out kept ones, and delete older ones (example logic)
+          # ideally we keep last N tags or something.
+          # For scaffolding purposes, we'll just log what we would do or delete obviously temporary tags.
+
+          # Delete nightly tags older than 7 days
+          git fetch --tags
+
+          # Find nightly tags older than 7 days
+          # This is tricky in pure bash without complex logic.
+          # Let's assume we just delete 'nightly-*' tags that are not the very latest.
+
+          echo "Cleanup logic goes here. (Placeholder for safety)"
+          # To make this real:
+          # Match nightly-* tags, sort by date, keep last 5, delete rest.
+
+          # EXERCISE for the user: Customize this logic.

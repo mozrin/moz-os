@@ -1,0 +1,57 @@
+name: Nightly Build
+
+on:
+  push:
+    branches:
+      - develop
+
+permissions:
+  contents: write
+
+jobs:
+  nightly:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Bump Version
+        id: version
+        run: |
+          python3 .github/scripts/release.py --type patch --dry-run # Nightly doesn't commit version bump usually, but generates a tag?
+          # Actually, for nightly, we might just want to tag the current commit with a nightly tag or bump a specific way.
+          # The prompt says: "Bumps version (nightly/dev tag), creates tag."
+          # Let's assume we create a tag like `nightly-YYYYMMDD` or just bump patch and tag.
+          # But if we bump patch every commit, that's a lot.
+          # Let's check typical patterns. Often nightly is just a build.
+          # However, the user asked for "Versioning, Manual Releases, Nightlies".
+          # Let's assume nightly bumps patch version or just tags current state.
+          # Let's stick to bumping patch for now as a safe default for "nightly" progress if not specified better.
+          # Or better: Just use the current version + build metadata.
+          # Re-reading todo.txt: "Versioning, Manual Releases, Nightlies"
+          # Let's implement a simple nightly tagger.
+
+          # For now, let's just make sure it runs the release script to get the NEXT version, but maybe not write it?
+          # Actually, standard nightly often just tags "nightly".
+          # Let's stick to the plan: "Bumps version (nightly/dev tag), creates tag."
+          # I'll bump patch and push the tag, but maybe not the commit?
+          # Let's just create a tag.
+
+          current_version=$(cat VERSION)
+          echo "Current: $current_version"
+
+          # Let's just tag with nightly-timestamp for now to avoid messing up semver for real releases
+          echo "version=nightly-$(date +%Y%m%d-%H%M%S)" >> $GITHUB_OUTPUT
+
+      - name: Create Tag
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git tag ${{ steps.version.outputs.version }}
+          git push origin ${{ steps.version.outputs.version }}
